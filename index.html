@@ -16,22 +16,21 @@
       --surface-2:     #0d211a;
       --border:        #1a3a28;
       --border-bright: #2d6048;
-      --accent-a:      #00e88f;   /* Adenine  — bioluminescent green */
-      --accent-t:      #ff6b6b;   /* Thymine  — coral red */
-      --accent-g:      #38d4ff;   /* Guanine  — cyan blue */
-      --accent-c:      #ffd166;   /* Cytosine — amber */
+      --accent-a:      #00e88f;
+      --accent-t:      #ff6b6b;
+      --accent-g:      #38d4ff;
+      --accent-c:      #ffd166;
       --text:          #b2e8c8;
       --text-sub:      #4a9068;
       --text-dim:      #273f30;
       --card-bg:       rgba(7, 20, 14, 0.88);
-      --glow:          rgba(0, 232, 143, 0.08);
-      --strand-1:      0, 232, 143;
-      --strand-2:      56, 212, 255;
-      --rung-0:        0, 232, 143;
-      --rung-1:        255, 107, 107;
-      --rung-2:        56, 212, 255;
-      --rung-3:        255, 209, 102;
-      --canvas-alpha:  0.55;
+      --strand-1-r: 0;   --strand-1-g: 232; --strand-1-b: 143;
+      --strand-2-r: 56;  --strand-2-g: 212; --strand-2-b: 255;
+      --rung-0-r: 0;   --rung-0-g: 232; --rung-0-b: 143;
+      --rung-1-r: 255; --rung-1-g: 107; --rung-1-b: 107;
+      --rung-2-r: 56;  --rung-2-g: 212; --rung-2-b: 255;
+      --rung-3-r: 255; --rung-3-g: 209; --rung-3-b: 102;
+      --canvas-alpha: 0.55;
     }
 
     :root[data-theme="light"] {
@@ -48,18 +47,17 @@
       --text-sub:      #547550;
       --text-dim:      #9aaa90;
       --card-bg:       rgba(250, 247, 239, 0.93);
-      --glow:          rgba(0, 104, 53, 0.06);
-      --strand-1:      0, 104, 53;
-      --strand-2:      10, 90, 128;
-      --rung-0:        0, 104, 53;
-      --rung-1:        181, 43, 43;
-      --rung-2:        10, 90, 128;
-      --rung-3:        176, 96, 16;
-      --canvas-alpha:  0.35;
+      --strand-1-r: 0;   --strand-1-g: 104; --strand-1-b: 53;
+      --strand-2-r: 10;  --strand-2-g: 90;  --strand-2-b: 128;
+      --rung-0-r: 0;   --rung-0-g: 104; --rung-0-b: 53;
+      --rung-1-r: 181; --rung-1-g: 43;  --rung-1-b: 43;
+      --rung-2-r: 10;  --rung-2-g: 90;  --rung-2-b: 128;
+      --rung-3-r: 176; --rung-3-g: 96;  --rung-3-b: 16;
+      --canvas-alpha: 0.35;
     }
 
     /* ================================================================
-       RESET
+       RESET & BASE
     ================================================================ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -73,7 +71,7 @@
     }
 
     /* ================================================================
-       DNA CANVAS BACKGROUND
+       DNA CANVAS
     ================================================================ */
     #dna-canvas {
       position: fixed;
@@ -85,7 +83,7 @@
     }
 
     /* ================================================================
-       LAYOUT SHELL
+       LAYOUT
     ================================================================ */
     #app {
       position: relative;
@@ -111,17 +109,13 @@
       -webkit-backdrop-filter: blur(16px);
     }
 
-    /* Logo */
     .logo {
       display: flex;
       align-items: center;
       gap: 0.625rem;
       cursor: pointer;
       user-select: none;
-      text-decoration: none;
     }
-
-    .logo-svg { flex-shrink: 0; }
 
     .logo-text {
       font-family: 'Cormorant Garamond', serif;
@@ -132,17 +126,20 @@
       white-space: nowrap;
     }
 
-    .logo-text em {
-      font-style: normal;
-      color: var(--accent-a);
-    }
+    .logo-text em { font-style: normal; color: var(--accent-a); }
 
-    /* Tool nav tabs */
-    .tool-nav {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-    }
+    /* Logo SVG colours set via CSS so variables work */
+    .logo-s1 { stroke: var(--accent-a); }
+    .logo-s2 { stroke: var(--accent-g); }
+    .logo-r0 { stroke: rgba(0,232,143,0.55); }
+    .logo-r2 { stroke: rgba(56,212,255,0.55); }
+    .logo-r1 { stroke: rgba(255,107,107,0.55); }
+    [data-theme="light"] .logo-r0 { stroke: rgba(0,104,53,0.45); }
+    [data-theme="light"] .logo-r2 { stroke: rgba(10,90,128,0.45); }
+    [data-theme="light"] .logo-r1 { stroke: rgba(181,43,43,0.45); }
+
+    /* Tool nav */
+    .tool-nav { display: flex; align-items: center; gap: 2px; }
 
     .tool-tab {
       padding: 0.3rem 0.75rem;
@@ -169,24 +166,37 @@
     .tool-tab.active {
       color: var(--accent-a);
       border-color: var(--accent-a);
-      background: var(--glow);
+      background: rgba(0, 232, 143, 0.06);
+    }
+
+    [data-theme="light"] .tool-tab.active {
+      background: rgba(0, 104, 53, 0.06);
     }
 
     /* Header right */
     .header-right {
       display: flex;
       align-items: center;
-      gap: 0.875rem;
+      gap: 0.75rem;
     }
 
-    .theme-label {
-      font-size: 0.55rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-dim);
+    .gh-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      color: var(--text-sub);
+      transition: color 0.2s, background 0.2s;
+      text-decoration: none;
     }
 
-    /* Toggle pill */
+    .gh-link:hover {
+      color: var(--text);
+      background: var(--surface-2);
+    }
+
     .theme-toggle {
       position: relative;
       width: 42px;
@@ -208,16 +218,17 @@
       background: var(--accent-a);
       top: 2.5px;
       left: 2.5px;
-      transition: transform 0.3s cubic-bezier(.4,.0,.2,1), background 0.3s;
-      box-shadow: 0 0 6px rgba(var(--strand-1), 0.5);
+      transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+      box-shadow: 0 0 6px rgba(0,232,143,0.4);
     }
 
     [data-theme="light"] .theme-toggle::after {
       transform: translateX(20px);
+      box-shadow: 0 0 6px rgba(0,104,53,0.3);
     }
 
     /* ================================================================
-       MAIN CONTENT
+       MAIN + STACKED VIEWS
     ================================================================ */
     main {
       flex: 1;
@@ -225,24 +236,24 @@
       position: relative;
     }
 
+    /* Both views sit absolutely inside main — only one visible at a time */
+    #landing, #tool-view {
+      position: absolute;
+      inset: 0;
+    }
+
     /* ================================================================
-       LANDING VIEW
+       LANDING
     ================================================================ */
     #landing {
-      height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 2rem;
       gap: 2.5rem;
-      opacity: 1;
-      transition: opacity 0.25s;
     }
 
-    #landing.hidden { opacity: 0; pointer-events: none; }
-
-    /* Hero copy */
     .hero {
       text-align: center;
       display: flex;
@@ -261,8 +272,7 @@
       gap: 0.5rem;
     }
 
-    .hero-eyebrow::before,
-    .hero-eyebrow::after {
+    .hero-eyebrow::before, .hero-eyebrow::after {
       content: '';
       display: block;
       width: 24px;
@@ -279,17 +289,14 @@
       letter-spacing: -0.01em;
     }
 
-    h1 em {
-      font-style: italic;
-      color: var(--accent-a);
-    }
+    h1 em { font-style: italic; color: var(--accent-a); }
 
     .hero-sub {
       font-size: 0.65rem;
       color: var(--text-sub);
-      letter-spacing: 0.08em;
-      max-width: 32ch;
-      line-height: 1.7;
+      letter-spacing: 0.05em;
+      max-width: 40ch;
+      line-height: 1.8;
     }
 
     /* Tool cards */
@@ -302,10 +309,7 @@
     }
 
     @media (max-width: 700px) {
-      .tool-cards {
-        grid-template-columns: 1fr;
-        max-width: 360px;
-      }
+      .tool-cards { grid-template-columns: 1fr; max-width: 360px; }
     }
 
     .card {
@@ -314,17 +318,15 @@
       border-radius: 3px;
       padding: 1.625rem 1.375rem 1.375rem;
       cursor: pointer;
-      transition: transform 0.25s cubic-bezier(.4,.0,.2,1),
+      transition: transform 0.25s cubic-bezier(.4,0,.2,1),
                   border-color 0.25s,
                   box-shadow 0.25s;
       position: relative;
       overflow: hidden;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      outline: none;
     }
 
-    /* Coloured top accent bar */
     .card::before {
       content: '';
       position: absolute;
@@ -333,32 +335,22 @@
       background: var(--card-stripe);
       transform: scaleX(0.35);
       transform-origin: left;
-      transition: transform 0.3s cubic-bezier(.4,.0,.2,1);
+      transition: transform 0.3s cubic-bezier(.4,0,.2,1);
     }
 
-    .card:hover::before { transform: scaleX(1); }
+    .card:hover::before  { transform: scaleX(1); }
 
     .card:hover {
       border-color: var(--border-bright);
       transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 0 0 transparent;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
     }
 
-    .card:focus-visible {
-      outline: 2px solid var(--accent-a);
-      outline-offset: 2px;
-    }
+    .card:focus-visible { outline: 2px solid var(--accent-a); outline-offset: 2px; }
 
-    /* Per-card accent colours */
-    .card[data-tool="membranes"] {
-      --card-stripe: linear-gradient(90deg, var(--accent-a), var(--accent-g));
-    }
-    .card[data-tool="psystems"] {
-      --card-stripe: linear-gradient(90deg, var(--accent-g), var(--accent-c));
-    }
-    .card[data-tool="swarms"] {
-      --card-stripe: linear-gradient(90deg, var(--accent-c), var(--accent-t));
-    }
+    .card[data-tool="membranes"] { --card-stripe: linear-gradient(90deg, var(--accent-a), var(--accent-g)); }
+    .card[data-tool="psystems"]  { --card-stripe: linear-gradient(90deg, var(--accent-g), var(--accent-c)); }
+    .card[data-tool="swarms"]    { --card-stripe: linear-gradient(90deg, var(--accent-c), var(--accent-t)); }
 
     .card-tag {
       font-size: 0.55rem;
@@ -405,53 +397,35 @@
       transition: color 0.2s, gap 0.2s;
     }
 
-    .card:hover .card-cta {
-      color: var(--accent-a);
-      gap: 0.625rem;
-    }
+    .card:hover .card-cta { color: var(--accent-a); gap: 0.625rem; }
 
     /* DNA sequence ticker */
     .seq-ticker {
       font-size: 0.5rem;
       letter-spacing: 0.25em;
       color: var(--text-dim);
-      font-family: 'IBM Plex Mono', monospace;
       overflow: hidden;
       white-space: nowrap;
       max-width: 860px;
       width: 100%;
-      mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
-      -webkit-mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+      mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+      -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
     }
 
     /* ================================================================
-       TOOL VIEW (IFRAME)
+       TOOL VIEW
     ================================================================ */
     #tool-view {
-      height: 100%;
       display: none;
       flex-direction: column;
     }
 
-    #tool-view.active {
-      display: flex;
-    }
+    #tool-view.active { display: flex; }
 
     #tool-frame {
       flex: 1;
       width: 100%;
       border: none;
-      background: white;
-    }
-
-    /* ================================================================
-       SMALL UTILITY
-    ================================================================ */
-    .sr-only {
-      position: absolute;
-      width: 1px; height: 1px;
-      overflow: hidden;
-      clip: rect(0,0,0,0);
     }
   </style>
 </head>
@@ -460,16 +434,15 @@
 <canvas id="dna-canvas" aria-hidden="true"></canvas>
 
 <div id="app">
-  <!-- ===== HEADER ===== -->
   <header>
-    <div class="logo" onclick="showLanding()" role="button" tabindex="0" aria-label="Return to lab home">
-      <!-- Inline mini-helix SVG -->
-      <svg class="logo-svg" width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-        <path d="M6 4 C9 7, 11 10, 14 14 C17 18, 19 21, 22 24" stroke="rgb(var(--strand-1))" stroke-width="2" stroke-linecap="round"/>
-        <path d="M22 4 C19 7, 17 10, 14 14 C11 18, 9 21, 6 24" stroke="rgb(var(--strand-2))" stroke-width="2" stroke-linecap="round"/>
-        <line x1="8.5" y1="9"  x2="19.5" y2="9"  stroke="rgba(var(--rung-0),0.6)" stroke-width="1.2" stroke-linecap="round"/>
-        <line x1="10"  y1="14" x2="18"   y2="14" stroke="rgba(var(--rung-2),0.6)" stroke-width="1.2" stroke-linecap="round"/>
-        <line x1="8.5" y1="19" x2="19.5" y2="19" stroke="rgba(var(--rung-1),0.6)" stroke-width="1.2" stroke-linecap="round"/>
+    <div class="logo" onclick="showLanding()" role="button" tabindex="0"
+         onkeydown="if(event.key==='Enter')showLanding()" aria-label="Return to lab home">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <path class="logo-s1" d="M6 4 C9 7, 11 10, 14 14 C17 18, 19 21, 22 24" stroke-width="2" stroke-linecap="round"/>
+        <path class="logo-s2" d="M22 4 C19 7, 17 10, 14 14 C11 18, 9 21, 6 24" stroke-width="2" stroke-linecap="round"/>
+        <line class="logo-r0" x1="8.5" y1="9"  x2="19.5" y2="9"  stroke-width="1.2" stroke-linecap="round"/>
+        <line class="logo-r2" x1="10"  y1="14" x2="18"   y2="14" stroke-width="1.2" stroke-linecap="round"/>
+        <line class="logo-r1" x1="8.5" y1="19" x2="19.5" y2="19" stroke-width="1.2" stroke-linecap="round"/>
       </svg>
       <span class="logo-text">Programmable <em>Matter</em> Lab</span>
     </div>
@@ -478,26 +451,26 @@
       <button class="tool-tab active" id="tab-home"
               onclick="showLanding()" aria-current="page">Lab</button>
       <button class="tool-tab" id="tab-membranes"
-              onclick="openTool('active-membranes.html', 'membranes')">Membranes</button>
+              onclick="openTool('active-membranes.html','membranes')">Membranes</button>
       <button class="tool-tab" id="tab-psystems"
-              onclick="openTool('p-systems.html', 'psystems')">P-Systems</button>
+              onclick="openTool('p-systems.html','psystems')">P-Systems</button>
       <button class="tool-tab" id="tab-swarms"
-              onclick="openTool('robot-swarms.html', 'swarms')">Swarms</button>
+              onclick="openTool('robot-swarms.html','swarms')">Swarms</button>
     </nav>
 
     <div class="header-right">
-      <span class="theme-label" aria-hidden="true">
-        <span id="theme-icon-label"></span>
-      </span>
+      <a class="gh-link" href="https://github.com/Theosdoor/programmable-matter-lab"
+         target="_blank" rel="noopener noreferrer" aria-label="View on GitHub" title="View on GitHub">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+        </svg>
+      </a>
       <button class="theme-toggle" onclick="toggleTheme()"
-              aria-label="Toggle light / dark mode"
-              title="Toggle theme"></button>
+              aria-label="Toggle light/dark mode" title="Toggle theme"></button>
     </div>
   </header>
 
-  <!-- ===== MAIN ===== -->
   <main>
-    <!-- Landing -->
     <div id="landing" role="main">
       <div class="hero">
         <p class="hero-eyebrow">Computational models of living systems</p>
@@ -506,36 +479,30 @@
       </div>
 
       <div class="tool-cards">
-        <!-- Card 1: Active Membranes -->
         <div class="card" data-tool="membranes" tabindex="0" role="button"
-             onclick="openTool('active-membranes.html', 'membranes')"
-             onkeydown="if(event.key==='Enter')openTool('active-membranes.html','membranes')"
-             aria-label="Open Active Membranes Analyser">
+             onclick="openTool('active-membranes.html','membranes')"
+             onkeydown="if(event.key==='Enter')openTool('active-membranes.html','membranes')">
           <div class="card-tag">A &mdash; 01</div>
-          <!-- Concentric membrane icon -->
           <svg class="card-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <ellipse cx="20" cy="20" rx="18" ry="12" stroke-dasharray="3 2"/>
+            <ellipse cx="20" cy="20" rx="18" ry="11" stroke-dasharray="3 2"/>
             <ellipse cx="20" cy="20" rx="11" ry="7"/>
-            <circle  cx="20" cy="20" r="3" fill="currentColor" stroke="none" opacity="0.6"/>
-            <line x1="15" y1="16" x2="20" y2="20" stroke-width="1" opacity="0.5"/>
-            <line x1="25" y1="16" x2="20" y2="20" stroke-width="1" opacity="0.5"/>
+            <circle  cx="20" cy="20" r="3" fill="currentColor" stroke="none" opacity="0.5"/>
+            <line x1="14" y1="16" x2="20" y2="20" stroke-width="1" opacity="0.4"/>
+            <line x1="26" y1="16" x2="20" y2="20" stroke-width="1" opacity="0.4"/>
           </svg>
           <h2 class="card-title">Active Membranes</h2>
           <p class="card-desc">Analyse P-systems with active membranes. Find all maximally parallel sets of applicable rewriting rules.</p>
           <div class="card-cta">Open analyser <span aria-hidden="true">&#8594;</span></div>
         </div>
 
-        <!-- Card 2: P-Systems Simulator -->
         <div class="card" data-tool="psystems" tabindex="0" role="button"
-             onclick="openTool('p-systems.html', 'psystems')"
-             onkeydown="if(event.key==='Enter')openTool('p-systems.html','psystems')"
-             aria-label="Open P-System Visual Simulator">
+             onclick="openTool('p-systems.html','psystems')"
+             onkeydown="if(event.key==='Enter')openTool('p-systems.html','psystems')">
           <div class="card-tag">G &mdash; 02</div>
-          <!-- Membrane hierarchy icon -->
           <svg class="card-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <rect x="3" y="3" width="34" height="34" rx="6" stroke-dasharray="4 2"/>
+            <rect x="3"  y="3"  width="34" height="34" rx="6" stroke-dasharray="4 2"/>
             <rect x="10" y="10" width="20" height="20" rx="4"/>
-            <rect x="16" y="16" width="8" height="8" rx="2" fill="currentColor" opacity="0.3" stroke="currentColor" stroke-width="1"/>
+            <rect x="16" y="16" width="8"  height="8"  rx="2" fill="currentColor" opacity="0.25" stroke-width="1"/>
             <circle cx="20" cy="20" r="1.5" fill="currentColor" stroke="none"/>
           </svg>
           <h2 class="card-title">P-System Simulator</h2>
@@ -543,27 +510,24 @@
           <div class="card-cta">Open simulator <span aria-hidden="true">&#8594;</span></div>
         </div>
 
-        <!-- Card 3: Robot Swarms -->
         <div class="card" data-tool="swarms" tabindex="0" role="button"
-             onclick="openTool('robot-swarms.html', 'swarms')"
-             onkeydown="if(event.key==='Enter')openTool('robot-swarms.html','swarms')"
-             aria-label="Open Robot Swarm Simulator">
+             onclick="openTool('robot-swarms.html','swarms')"
+             onkeydown="if(event.key==='Enter')openTool('robot-swarms.html','swarms')">
           <div class="card-tag">T &mdash; 03</div>
-          <!-- Swarm/grid icon -->
           <svg class="card-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <circle cx="20" cy="20" r="3.5" fill="currentColor" opacity="0.4" stroke="currentColor"/>
+            <circle cx="20" cy="20" r="3.5" fill="currentColor" opacity="0.35"/>
             <circle cx="9"  cy="14" r="2.5"/>
             <circle cx="31" cy="14" r="2.5"/>
             <circle cx="9"  cy="26" r="2.5"/>
             <circle cx="31" cy="26" r="2.5"/>
             <circle cx="20" cy="7"  r="2.5"/>
             <circle cx="20" cy="33" r="2.5"/>
-            <line x1="11.5" y1="15.5" x2="17.5" y2="18" stroke-width="1" opacity="0.5"/>
-            <line x1="28.5" y1="15.5" x2="22.5" y2="18" stroke-width="1" opacity="0.5"/>
-            <line x1="11.5" y1="24.5" x2="17.5" y2="22" stroke-width="1" opacity="0.5"/>
-            <line x1="28.5" y1="24.5" x2="22.5" y2="22" stroke-width="1" opacity="0.5"/>
-            <line x1="20"   y1="9.5"  x2="20"   y2="16.5" stroke-width="1" opacity="0.5"/>
-            <line x1="20"   y1="30.5" x2="20"   y2="23.5" stroke-width="1" opacity="0.5"/>
+            <line x1="11.5" y1="15.5" x2="17.5" y2="18"   stroke-width="1" opacity="0.4"/>
+            <line x1="28.5" y1="15.5" x2="22.5" y2="18"   stroke-width="1" opacity="0.4"/>
+            <line x1="11.5" y1="24.5" x2="17.5" y2="22"   stroke-width="1" opacity="0.4"/>
+            <line x1="28.5" y1="24.5" x2="22.5" y2="22"   stroke-width="1" opacity="0.4"/>
+            <line x1="20"   y1="9.5"  x2="20"   y2="16.5" stroke-width="1" opacity="0.4"/>
+            <line x1="20"   y1="30.5" x2="20"   y2="23.5" stroke-width="1" opacity="0.4"/>
           </svg>
           <h2 class="card-title">Robot Swarms</h2>
           <p class="card-desc">Simulate connectivity-preserving transformations in robot swarms via pivot rotations on a square grid.</p>
@@ -571,12 +535,10 @@
         </div>
       </div>
 
-      <!-- Scrolling DNA sequence decoration -->
       <div class="seq-ticker" id="seq-ticker" aria-hidden="true"></div>
     </div>
 
-    <!-- Tool iframe view -->
-    <div id="tool-view" aria-label="Tool">
+    <div id="tool-view">
       <iframe id="tool-frame" src="" title="Selected tool" allowfullscreen></iframe>
     </div>
   </main>
@@ -588,39 +550,36 @@
   ================================================================ */
   const html = document.documentElement;
 
-  (function initTheme() {
+  (function () {
     const saved = localStorage.getItem('pm-theme') || 'dark';
     html.setAttribute('data-theme', saved);
-    updateThemeLabel(saved);
   })();
 
-  function updateThemeLabel(theme) {
-    const el = document.getElementById('theme-icon-label');
-    if (el) el.textContent = theme === 'dark' ? 'dark' : 'light';
-  }
-
   function toggleTheme() {
-    const cur  = html.getAttribute('data-theme');
-    const next = cur === 'dark' ? 'light' : 'dark';
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
     localStorage.setItem('pm-theme', next);
-    updateThemeLabel(next);
+    // Sync to any open tool iframe (same-origin)
+    try {
+      const frameDoc = document.getElementById('tool-frame').contentDocument;
+      if (frameDoc) frameDoc.documentElement.setAttribute('data-theme', next);
+    } catch (_) {}
   }
 
   /* ================================================================
      NAVIGATION
   ================================================================ */
   function showLanding() {
-    document.getElementById('landing').classList.remove('hidden');
+    document.getElementById('landing').style.display   = 'flex';
     document.getElementById('tool-view').classList.remove('active');
     document.getElementById('tool-frame').src = '';
     setActiveTab('home');
   }
 
   function openTool(src, toolId) {
-    document.getElementById('tool-frame').src = src;
-    document.getElementById('landing').classList.add('hidden');
+    document.getElementById('landing').style.display = 'none';
     document.getElementById('tool-view').classList.add('active');
+    document.getElementById('tool-frame').src = src;
     setActiveTab(toolId);
   }
 
@@ -630,19 +589,11 @@
       t.removeAttribute('aria-current');
     });
     const tab = document.getElementById('tab-' + id);
-    if (tab) {
-      tab.classList.add('active');
-      tab.setAttribute('aria-current', 'page');
-    }
+    if (tab) { tab.classList.add('active'); tab.setAttribute('aria-current', 'page'); }
   }
 
-  // logo keyboard nav
-  document.querySelector('.logo').addEventListener('keydown', e => {
-    if (e.key === 'Enter') showLanding();
-  });
-
   /* ================================================================
-     DNA CANVAS ANIMATION
+     DNA CANVAS
   ================================================================ */
   const canvas = document.getElementById('dna-canvas');
   const ctx    = canvas.getContext('2d');
@@ -655,84 +606,95 @@
   resize();
   window.addEventListener('resize', resize);
 
-  /* Helix config */
   const HELICES = [
-    { xFrac: 0.08,  phaseOff: 0 },
-    { xFrac: 0.92,  phaseOff: Math.PI * 0.85 },
+    { xFrac: 0.07,  phaseOff: 0 },
+    { xFrac: 0.93,  phaseOff: Math.PI * 0.85 },
     { xFrac: 0.5,   phaseOff: Math.PI * 1.3  },
   ];
 
-  const RUNG_KEYS = ['rung-0','rung-1','rung-2','rung-3'];
+  function getVar(name) {
+    return getComputedStyle(html).getPropertyValue(name).trim();
+  }
 
-  function getCSSColor(varName) {
-    return getComputedStyle(html).getPropertyValue('--' + varName).trim();
+  function rgbFromVars(r, g, b) {
+    return [
+      parseInt(getVar('--' + r + '-r')) || 0,
+      parseInt(getVar('--' + r + '-g')) || 0, // reuse pattern
+      parseInt(getVar('--' + r + '-b')) || 0,
+    ];
+  }
+
+  // Pull raw R,G,B values from CSS variables
+  function getChannels(prefix) {
+    return [
+      parseInt(getVar('--' + prefix + '-r')),
+      parseInt(getVar('--' + prefix + '-g')),
+      parseInt(getVar('--' + prefix + '-b')),
+    ];
   }
 
   function drawHelix(cx, phaseOff, alpha) {
-    const amp        = Math.min(55, canvas.width * 0.04);
-    const waveLen    = 130;
-    const h          = canvas.height + 80;
-    const s1rgb      = getCSSColor('strand-1');
-    const s2rgb      = getCSSColor('strand-2');
-    const rungRgbs   = RUNG_KEYS.map(k => getCSSColor(k));
+    const amp     = Math.min(55, canvas.width * 0.04);
+    const waveLen = 130;
+    const h       = canvas.height + 80;
 
-    /* Base pair rungs */
+    const s1 = getChannels('strand-1');
+    const s2 = getChannels('strand-2');
+    const rungs = [
+      getChannels('rung-0'),
+      getChannels('rung-1'),
+      getChannels('rung-2'),
+      getChannels('rung-3'),
+    ];
+
     const rungStep = 22;
     for (let y = -40; y < h; y += rungStep) {
       const t  = (y / waveLen) * Math.PI * 2 + animT + phaseOff;
       const x1 = cx + Math.sin(t) * amp;
       const x2 = cx + Math.sin(t + Math.PI) * amp;
-      const ri = Math.floor((y + 40) / rungStep) % 4;
-      const rc = rungRgbs[ri];
+      const rc = rungs[Math.floor((y + 40) / rungStep) % 4];
 
       ctx.beginPath();
       ctx.moveTo(x1, y);
       ctx.lineTo(x2, y);
-      ctx.strokeStyle = `rgba(${rc}, ${alpha * 0.38})`;
+      ctx.strokeStyle = `rgba(${rc[0]},${rc[1]},${rc[2]},${alpha * 0.38})`;
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      /* Nucleotide dots */
       ctx.beginPath();
       ctx.arc(x1, y, 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${rc}, ${alpha * 0.7})`;
+      ctx.fillStyle = `rgba(${rc[0]},${rc[1]},${rc[2]},${alpha * 0.7})`;
       ctx.fill();
 
       ctx.beginPath();
       ctx.arc(x2, y, 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${rc}, ${alpha * 0.7})`;
+      ctx.fillStyle = `rgba(${rc[0]},${rc[1]},${rc[2]},${alpha * 0.7})`;
       ctx.fill();
     }
 
-    /* Strand 1 */
     ctx.beginPath();
     for (let y = -40; y < h; y += 2) {
-      const t = (y / waveLen) * Math.PI * 2 + animT + phaseOff;
-      const x = cx + Math.sin(t) * amp;
+      const x = cx + Math.sin((y / waveLen) * Math.PI * 2 + animT + phaseOff) * amp;
       y === -40 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
-    ctx.strokeStyle = `rgba(${s1rgb}, ${alpha * 0.75})`;
+    ctx.strokeStyle = `rgba(${s1[0]},${s1[1]},${s1[2]},${alpha * 0.75})`;
     ctx.lineWidth = 1.8;
     ctx.stroke();
 
-    /* Strand 2 */
     ctx.beginPath();
     for (let y = -40; y < h; y += 2) {
-      const t = (y / waveLen) * Math.PI * 2 + animT + phaseOff;
-      const x = cx + Math.sin(t + Math.PI) * amp;
+      const x = cx + Math.sin((y / waveLen) * Math.PI * 2 + animT + phaseOff + Math.PI) * amp;
       y === -40 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
-    ctx.strokeStyle = `rgba(${s2rgb}, ${alpha * 0.75})`;
+    ctx.strokeStyle = `rgba(${s2[0]},${s2[1]},${s2[2]},${alpha * 0.75})`;
     ctx.lineWidth = 1.8;
     ctx.stroke();
   }
 
   function frame() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const alpha = parseFloat(getCSSColor('canvas-alpha')) || 0.5;
-    for (const h of HELICES) {
-      drawHelix(canvas.width * h.xFrac, h.phaseOff, alpha);
-    }
+    const alpha = parseFloat(getVar('--canvas-alpha')) || 0.5;
+    for (const h of HELICES) drawHelix(canvas.width * h.xFrac, h.phaseOff, alpha);
     animT += 0.004;
     requestAnimationFrame(frame);
   }
@@ -740,23 +702,20 @@
   frame();
 
   /* ================================================================
-     DNA SEQUENCE TICKER
+     SEQUENCE TICKER
   ================================================================ */
-  const BASES    = 'ATGCATGCTAGCGCGTATGCATTAGCGCATGCAT';
-  const ticker   = document.getElementById('seq-ticker');
-  let   seqOff   = 0;
+  const BASES  = 'ATGCATGCTAGCGCGTATGCATTAGCGCATGCAT';
+  const ticker = document.getElementById('seq-ticker');
+  let   seqOff = 0;
 
-  function tickSequence() {
+  setInterval(function () {
     if (!ticker) return;
-    const cols = Math.floor(ticker.clientWidth / 9) + 4;
-    let   seq  = '';
+    const cols = Math.floor((ticker.clientWidth || 860) / 9) + 4;
+    let seq = '';
     for (let i = 0; i < cols; i++) seq += BASES[(i + seqOff) % BASES.length];
     ticker.textContent = seq;
     seqOff = (seqOff + 1) % BASES.length;
-  }
-
-  setInterval(tickSequence, 120);
+  }, 120);
 </script>
-
 </body>
 </html>

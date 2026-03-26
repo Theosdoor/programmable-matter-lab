@@ -1,0 +1,334 @@
+/* ================================================================
+   Programmable Matter Lab — Shared Theme
+   Applied to all tool pages to match the hub aesthetic.
+================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+/* ----------------------------------------------------------------
+   TOKENS
+   Light is default (no Tailwind dark mode needed on these pages).
+   Dark overrides via [data-theme="dark"] set by theme-sync script.
+---------------------------------------------------------------- */
+:root {
+  --bg:            #f2ede2;
+  --surface:       #faf7ef;
+  --surface-2:     #ede8da;
+  --border:        #bdb49a;
+  --border-bright: #7a9060;
+  --accent-a:      #006835;
+  --accent-t:      #b52b2b;
+  --accent-g:      #0a5a80;
+  --accent-c:      #b06010;
+  --text:          #192318;
+  --text-sub:      #547550;
+  --text-dim:      #9aaa90;
+  --input-bg:      #f5f2e8;
+  --input-border:  #c0b89a;
+  --code-bg:       #e8e4d8;
+}
+
+[data-theme="dark"] {
+  --bg:            #030e08;
+  --surface:       #071410;
+  --surface-2:     #0d211a;
+  --border:        #1a3a28;
+  --border-bright: #2d6048;
+  --accent-a:      #00e88f;
+  --accent-t:      #ff6b6b;
+  --accent-g:      #38d4ff;
+  --accent-c:      #ffd166;
+  --text:          #b2e8c8;
+  --text-sub:      #4a9068;
+  --text-dim:      #273f30;
+  --input-bg:      #091710;
+  --input-border:  #1e4030;
+  --code-bg:       #0d211a;
+}
+
+/* ----------------------------------------------------------------
+   BASE
+---------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  transition: background-color 0.3s, color 0.3s;
+}
+
+body {
+  font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
+  background-color: var(--bg) !important;
+  color: var(--text) !important;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Cormorant Garamond', serif !important;
+  color: var(--text) !important;
+}
+
+a { color: var(--accent-a); }
+
+code, pre {
+  font-family: 'IBM Plex Mono', monospace !important;
+  background-color: var(--code-bg) !important;
+  color: var(--accent-a) !important;
+  border-radius: 3px;
+}
+
+code { padding: 0.1em 0.35em; font-size: 0.88em; }
+
+::selection {
+  background: rgba(0, 232, 143, 0.25);
+  color: var(--text);
+}
+
+[data-theme="light"] ::selection {
+  background: rgba(0, 104, 53, 0.2);
+}
+
+/* ----------------------------------------------------------------
+   SCROLLBARS
+---------------------------------------------------------------- */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: var(--bg); }
+::-webkit-scrollbar-thumb  { background: var(--border-bright); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+/* ----------------------------------------------------------------
+   TAILWIND COLOUR CLASS OVERRIDES
+   (Tailwind is still loaded for layout — we just repaint colours.)
+---------------------------------------------------------------- */
+
+/* Page / section backgrounds */
+.bg-white          { background-color: var(--surface)   !important; }
+.bg-gray-50        { background-color: var(--surface-2) !important; }
+.bg-gray-100       { background-color: var(--bg)        !important; }
+.bg-gray-200       { background-color: var(--surface-2) !important; }
+
+/* Elevation */
+.shadow-xl,
+.shadow    { box-shadow: 0 4px 32px rgba(0,0,0,0.3) !important; }
+
+/* Text */
+.text-gray-900,
+.text-gray-800,
+.text-gray-700     { color: var(--text)     !important; }
+.text-gray-600,
+.text-gray-500     { color: var(--text-sub) !important; }
+.text-gray-400,
+.text-gray-300     { color: var(--text-dim) !important; }
+
+/* Borders */
+.border,
+.border-t, .border-b, .border-l, .border-r,
+.border-gray-100,
+.border-gray-200,
+.border-gray-300,
+.border-gray-400   { border-color: var(--border) !important; }
+
+/* ----------------------------------------------------------------
+   FORM ELEMENTS
+---------------------------------------------------------------- */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+textarea,
+select {
+  background-color: var(--input-bg)     !important;
+  border-color:     var(--input-border) !important;
+  color:            var(--text)         !important;
+  font-family:      'IBM Plex Mono', monospace !important;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  border-color: var(--border-bright) !important;
+  box-shadow: 0 0 0 2px rgba(0, 232, 143, 0.15) !important;
+}
+
+[data-theme="light"] input:focus,
+[data-theme="light"] textarea:focus,
+[data-theme="light"] select:focus {
+  box-shadow: 0 0 0 2px rgba(0, 104, 53, 0.15) !important;
+}
+
+input::placeholder,
+textarea::placeholder { color: var(--text-dim) !important; }
+
+label { color: var(--text-sub) !important; }
+
+/* ----------------------------------------------------------------
+   BUTTONS — keep colour-coded buttons vibrant, just add font
+---------------------------------------------------------------- */
+button {
+  font-family: 'IBM Plex Mono', monospace !important;
+  letter-spacing: 0.04em;
+}
+
+/* ----------------------------------------------------------------
+   INFO / MESSAGE BOXES
+---------------------------------------------------------------- */
+.bg-blue-50,
+.bg-blue-100  { background-color: var(--surface-2)   !important; }
+.text-blue-700,
+.text-blue-600 { color: var(--accent-g)              !important; }
+.border-blue-200,
+.border-blue-300 { border-color: var(--border)        !important; }
+
+/* ----------------------------------------------------------------
+   VISUAL MEMBRANE EDITOR (active-membranes.html + p-systems.html)
+---------------------------------------------------------------- */
+.editor-area {
+  background-color: var(--surface-2) !important;
+  border-color:     var(--border)    !important;
+}
+
+.membrane-draggable {
+  background-color: var(--surface)   !important;
+  border-color:     var(--border-bright) !important;
+  color:            var(--text)      !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+}
+
+.membrane-drag-handle {
+  background-color: var(--surface-2) !important;
+  border-color:     var(--border)    !important;
+  color:            var(--text-sub)  !important;
+}
+
+.membrane-content {
+  border-color:     var(--border)    !important;
+  background-color: rgba(0,0,0,0.08) !important;
+}
+
+[data-theme="light"] .membrane-content {
+  background-color: rgba(0,0,0,0.03) !important;
+}
+
+/* Membrane identity colours — kept vivid but adapted for dark */
+[data-theme="dark"] .membrane-skin-bg    { border-color: var(--accent-g)  !important; background-color: rgba(56,212,255,0.07)  !important; }
+[data-theme="dark"] .membrane-color-0   { border-color: var(--accent-a)  !important; background-color: rgba(0,232,143,0.07)   !important; }
+[data-theme="dark"] .membrane-color-1   { border-color: var(--accent-c)  !important; background-color: rgba(255,209,102,0.07) !important; }
+[data-theme="dark"] .membrane-color-2   { border-color: #b36aff          !important; background-color: rgba(179,106,255,0.07) !important; }
+[data-theme="dark"] .membrane-color-3   { border-color: var(--accent-t)  !important; background-color: rgba(255,107,107,0.07) !important; }
+[data-theme="dark"] .membrane-default-bg { border-color: var(--border-bright) !important; background-color: var(--surface-2) !important; }
+
+.drop-target-highlight {
+  background-color: rgba(56,212,255,0.12) !important;
+  outline-color:    var(--accent-g)       !important;
+}
+
+[data-theme="light"] .drop-target-highlight {
+  background-color: rgba(10,90,128,0.1)  !important;
+  outline-color:    var(--accent-g)       !important;
+}
+
+/* ----------------------------------------------------------------
+   RULE BLOCKS (active-membranes.html)
+---------------------------------------------------------------- */
+.rule-block-container {
+  background-color: var(--surface-2) !important;
+  border-color:     var(--border)    !important;
+}
+
+.rule-block {
+  background-color: var(--surface)   !important;
+  border-color:     var(--border)    !important;
+}
+
+.rule-label    { color: var(--text)     !important; font-family: 'IBM Plex Mono', monospace !important; }
+.field-note    { color: var(--text-dim) !important; }
+
+.result-item {
+  background-color: var(--surface-2) !important;
+  border-color:     var(--border)    !important;
+  color:            var(--text-sub)  !important;
+}
+
+.rule-tag {
+  background-color: rgba(56,212,255,0.12) !important;
+  color:            var(--accent-g)       !important;
+}
+
+[data-theme="light"] .rule-tag {
+  background-color: rgba(10,90,128,0.1) !important;
+  color:            var(--accent-g)     !important;
+}
+
+#rules-list-container {
+  background-color: var(--surface-2) !important;
+  border-color:     var(--border)    !important;
+}
+
+/* ----------------------------------------------------------------
+   GRID CELLS (robot-swarms.html)
+---------------------------------------------------------------- */
+.grid-cell {
+  background-color: var(--surface)   !important;
+  border-color:     var(--border)    !important;
+}
+
+.grid-cell-center {
+  background-color: var(--surface-2) !important;
+}
+
+.label-cell { color: var(--text-sub) !important; }
+
+/* Highlight states stay vivid for usability */
+.highlight-rotating          { background-color: rgba(56,212,255,0.3)  !important; }
+.highlight-potential-pivot   { background-color: rgba(255,209,102,0.3) !important; }
+.highlight-pivot             { background-color: rgba(56,212,255,0.5)  !important; }
+.highlight-destination       { background-color: rgba(0,232,143,0.5)   !important; border-color: var(--accent-a) !important; }
+.highlight-double-destination { background-color: rgba(179,106,255,0.4) !important; border-color: #b36aff !important; }
+
+[data-theme="light"] .highlight-rotating          { background-color: #90cdf4 !important; }
+[data-theme="light"] .highlight-potential-pivot   { background-color: #faf089 !important; }
+[data-theme="light"] .highlight-pivot             { background-color: #63b3ed !important; }
+[data-theme="light"] .highlight-destination       { background-color: #4299e1 !important; border-color: #2c5282 !important; }
+[data-theme="light"] .highlight-double-destination { background-color: #d6bcfa !important; border-color: #805ad5 !important; }
+
+/* Nodes are functional colours — keep them */
+.node-red   { background-color: #f56565 !important; }
+.node-black { background-color: #4A5568 !important; }
+
+[data-theme="dark"] .node-black { background-color: var(--text-sub) !important; }
+
+.mini-grid-cell        { background-color: var(--surface)   !important; border-color: var(--border)    !important; }
+.mini-grid-cell-center { background-color: var(--surface-2) !important; }
+
+/* ----------------------------------------------------------------
+   LOG AREAS
+---------------------------------------------------------------- */
+#log,
+#log-output {
+  background-color: var(--surface)   !important;
+  border-color:     var(--border)    !important;
+  color:            var(--text-sub)  !important;
+}
+
+/* ----------------------------------------------------------------
+   MISC UTILITY OVERRIDES
+---------------------------------------------------------------- */
+.object-tag {
+  background-color: var(--surface-2) !important;
+  color:            var(--text)      !important;
+  border-color:     var(--border)    !important;
+}
+
+/* Simulation status / display panels */
+#simulation-status,
+#membranes-display,
+#environment-display {
+  background-color: var(--surface-2) !important;
+  border-color:     var(--border)    !important;
+  color:            var(--text-sub)  !important;
+}
+
+/* Error messages stay red */
+.error-message { color: #ff6b6b !important; }
+[data-theme="light"] .error-message { color: var(--accent-t) !important; }

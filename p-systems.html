@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P-System Visual Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="theme.css">
+    <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('pm-theme')||'dark');})();</script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'IBM Plex Mono', monospace; }
         .editor-area {
             border: 2px dashed #cbd5e1; /* gray-300 */
             min-height: 400px;
