@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Programmable Matter Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ================================================================
+       DESIGN TOKENS
+    ================================================================ */
+    :root[data-theme="dark"] {
+      --bg:            #030e08;
+      --surface:       #071410;
+      --surface-2:     #0d211a;
+      --border:        #1a3a28;
+      --border-bright: #2d6048;
+      --accent-a:      #00e88f;   /* Adenine  — bioluminescent green */
+      --accent-t:      #ff6b6b;   /* Thymine  — coral red */
+      --accent-g:      #38d4ff;   /* Guanine  — cyan blue */
+      --accent-c:      #ffd166;   /* Cytosine — amber */
+      --text:          #b2e8c8;
+      --text-sub:      #4a9068;
+      --text-dim:      #273f30;
+      --card-bg:       rgba(7, 20, 14, 0.88);
+      --glow:          rgba(0, 232, 143, 0.08);
+      --strand-1:      0, 232, 143;
+      --strand-2:      56, 212, 255;
+      --rung-0:        0, 232, 143;
+      --rung-1:        255, 107, 107;
+      --rung-2:        56, 212, 255;
+      --rung-3:        255, 209, 102;
+      --canvas-alpha:  0.55;
+    }
+
+    :root[data-theme="light"] {
+      --bg:            #f2ede2;
+      --surface:       #faf7ef;
+      --surface-2:     #ede8da;
+      --border:        #bdb49a;
+      --border-bright: #7a9060;
+      --accent-a:      #006835;
+      --accent-t:      #b52b2b;
+      --accent-g:      #0a5a80;
+      --accent-c:      #b06010;
+      --text:          #192318;
+      --text-sub:      #547550;
+      --text-dim:      #9aaa90;
+      --card-bg:       rgba(250, 247, 239, 0.93);
+      --glow:          rgba(0, 104, 53, 0.06);
+      --strand-1:      0, 104, 53;
+      --strand-2:      10, 90, 128;
+      --rung-0:        0, 104, 53;
+      --rung-1:        181, 43, 43;
+      --rung-2:        10, 90, 128;
+      --rung-3:        176, 96, 16;
+      --canvas-alpha:  0.35;
+    }
+
+    /* ================================================================
+       RESET
+    ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: 'IBM Plex Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      transition: background 0.35s, color 0.35s;
+    }
+
+    /* ================================================================
+       DNA CANVAS BACKGROUND
+    ================================================================ */
+    #dna-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ================================================================
+       LAYOUT SHELL
+    ================================================================ */
+    #app {
+      position: relative;
+      z-index: 1;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ================================================================
+       HEADER
+    ================================================================ */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.75rem;
+      height: 58px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    /* Logo */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      cursor: pointer;
+      user-select: none;
+      text-decoration: none;
+    }
+
+    .logo-svg { flex-shrink: 0; }
+
+    .logo-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+
+    .logo-text em {
+      font-style: normal;
+      color: var(--accent-a);
+    }
+
+    /* Tool nav tabs */
+    .tool-nav {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .tool-tab {
+      padding: 0.3rem 0.75rem;
+      border-radius: 3px;
+      font-size: 0.62rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-sub);
+      transition: all 0.2s;
+      font-family: 'IBM Plex Mono', monospace;
+      white-space: nowrap;
+    }
+
+    .tool-tab:hover {
+      color: var(--text);
+      border-color: var(--border-bright);
+      background: var(--surface-2);
+    }
+
+    .tool-tab.active {
+      color: var(--accent-a);
+      border-color: var(--accent-a);
+      background: var(--glow);
+    }
+
+    /* Header right */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+    }
+
+    .theme-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* Toggle pill */
+    .theme-toggle {
+      position: relative;
+      width: 42px;
+      height: 22px;
+      border: 1px solid var(--border-bright);
+      border-radius: 11px;
+      background: var(--surface-2);
+      cursor: pointer;
+      transition: border-color 0.3s;
+      flex-shrink: 0;
+    }
+
+    .theme-toggle::after {
+      content: '';
+      position: absolute;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: var(--accent-a);
+      top: 2.5px;
+      left: 2.5px;
+      transition: transform 0.3s cubic-bezier(.4,.0,.2,1), background 0.3s;
+      box-shadow: 0 0 6px rgba(var(--strand-1), 0.5);
+    }
+
+    [data-theme="light"] .theme-toggle::after {
+      transform: translateX(20px);
+    }
+
+    /* ================================================================
+       MAIN CONTENT
+    ================================================================ */
+    main {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ================================================================
+       LANDING VIEW
+    ================================================================ */
+    #landing {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      gap: 2.5rem;
+      opacity: 1;
+      transition: opacity 0.25s;
+    }
+
+    #landing.hidden { opacity: 0; pointer-events: none; }
+
+    /* Hero copy */
+    .hero {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .hero-eyebrow {
+      font-size: 0.58rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: var(--border-bright);
+    }
+
+    h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+      font-weight: 600;
+      line-height: 1.08;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--accent-a);
+    }
+
+    .hero-sub {
+      font-size: 0.65rem;
+      color: var(--text-sub);
+      letter-spacing: 0.08em;
+      max-width: 32ch;
+      line-height: 1.7;
+    }
+
+    /* Tool cards */
+    .tool-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 860px;
+    }
+
+    @media (max-width: 700px) {
+      .tool-cards {
+        grid-template-columns: 1fr;
+        max-width: 360px;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1.625rem 1.375rem 1.375rem;
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(.4,.0,.2,1),
+                  border-color 0.25s,
+                  box-shadow 0.25s;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      outline: none;
+    }
+
+    /* Coloured top accent bar */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--card-stripe);
+      transform: scaleX(0.35);
+      transform-origin: left;
+      transition: transform 0.3s cubic-bezier(.4,.0,.2,1);
+    }
+
+    .card:hover::before { transform: scaleX(1); }
+
+    .card:hover {
+      border-color: var(--border-bright);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25), 0 0 0 0 transparent;
+    }
+
+    .card:focus-visible {
+      outline: 2px solid var(--accent-a);
+      outline-offset: 2px;
+    }
+
+    /* Per-card accent colours */
+    .card[data-tool="membranes"] {
+      --card-stripe: linear-gradient(90deg, var(--accent-a), var(--accent-g));
+    }
+    .card[data-tool="psystems"] {
+      --card-stripe: linear-gradient(90deg, var(--accent-g), var(--accent-c));
+    }
+    .card[data-tool="swarms"] {
+      --card-stripe: linear-gradient(90deg, var(--accent-c), var(--accent-t));
+    }
+
+    .card-tag {
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 1rem;
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 0.875rem;
+      color: var(--text-sub);
+      transition: color 0.2s;
+    }
+
+    .card:hover .card-icon { color: var(--text); }
+
+    .card-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      line-height: 1.2;
+    }
+
+    .card-desc {
+      font-size: 0.63rem;
+      line-height: 1.7;
+      color: var(--text-sub);
+    }
+
+    .card-cta {
+      margin-top: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      transition: color 0.2s, gap 0.2s;
+    }
+
+    .card:hover .card-cta {
+      color: var(--accent-a);
+      gap: 0.625rem;
+    }
+
+    /* DNA sequence ticker */
+    .seq-ticker {
+      font-size: 0.5rem;
+      letter-spacing: 0.25em;
+      color: var(--text-dim);
+      font-family: 'IBM Plex Mono', monospace;
+      overflow: hidden;
+      white-space: nowrap;
+      max-width: 860px;
+      width: 100%;
+      mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+      -webkit-mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+    }
+
+    /* ================================================================
+       TOOL VIEW (IFRAME)
+    ================================================================ */
+    #tool-view {
+      height: 100%;
+      display: none;
+      flex-direction: column;
+    }
+
+    #tool-view.active {
+      display: flex;
+    }
+
+    #tool-frame {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: white;
+    }
+
+    /* ================================================================
+       SMALL UTILITY
+    ================================================================ */
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="dna-canvas" aria-hidden="true"></canvas>
+
+<div id="app">
+  <!-- ===== HEADER ===== -->
+  <header>
+    <div class="logo" onclick="showLanding()" role="button" tabindex="0" aria-label="Return to lab home">
+      <!-- Inline mini-helix SVG -->
+      <svg class="logo-svg" width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <path d="M6 4 C9 7, 11 10, 14 14 C17 18, 19 21, 22 24" stroke="rgb(var(--strand-1))" stroke-width="2" stroke-linecap="round"/>
+        <path d="M22 4 C19 7, 17 10, 14 14 C11 18, 9 21, 6 24" stroke="rgb(var(--strand-2))" stroke-width="2" stroke-linecap="round"/>
+        <line x1="8.5" y1="9"  x2="19.5" y2="9"  stroke="rgba(var(--rung-0),0.6)" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="10"  y1="14" x2="18"   y2="14" stroke="rgba(var(--rung-2),0.6)" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="8.5" y1="19" x2="19.5" y2="19" stroke="rgba(var(--rung-1),0.6)" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span class="logo-text">Programmable <em>Matter</em> Lab</span>
+    </div>
+
+    <nav class="tool-nav" aria-label="Tools">
+      <button class="tool-tab active" id="tab-home"
+              onclick="showLanding()" aria-current="page">Lab</button>
+      <button class="tool-tab" id="tab-membranes"
+              onclick="openTool('active-membranes.html', 'membranes')">Membranes</button>
+      <button class="tool-tab" id="tab-psystems"
+              onclick="openTool('p-systems.html', 'psystems')">P-Systems</button>
+      <button class="tool-tab" id="tab-swarms"
+              onclick="openTool('robot-swarms.html', 'swarms')">Swarms</button>
+    </nav>
+
+    <div class="header-right">
+      <span class="theme-label" aria-hidden="true">
+        <span id="theme-icon-label"></span>
+      </span>
+      <button class="theme-toggle" onclick="toggleTheme()"
+              aria-label="Toggle light / dark mode"
+              title="Toggle theme"></button>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main>
+    <!-- Landing -->
+    <div id="landing" role="main">
+      <div class="hero">
+        <p class="hero-eyebrow">Computational models of living systems</p>
+        <h1>Programmable<br><em>Matter</em></h1>
+        <p class="hero-sub">Three tools for simulating bio-inspired computation — membrane systems, P-systems, and robot swarms.</p>
+      </div>
+
+      <div class="tool-cards">
+        <!-- Card 1: Active Membranes -->
+        <div class="card" data-tool="membranes" tabindex="0" role="button"
+             onclick="openTool('active-membranes.html', 'membranes')"
+             onkeydown="if(event.key==='Enter')openTool('active-membranes.html','membranes')"
+             aria-label="Open Active Membranes Analyser">
+          <div class="card-tag">A &mdash; 01</div>
+          <!-- Concentric membrane icon -->
+          <svg class="card-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <ellipse cx="20" cy="20" rx="18" ry="12" stroke-dasharray="3 2"/>
+            <ellipse cx="20" cy="20" rx="11" ry="7"/>
+            <circle  cx="20" cy="20" r="3" fill="currentColor" stroke="none" opacity="0.6"/>
+            <line x1="15" y1="16" x2="20" y2="20" stroke-width="1" opacity="0.5"/>
+            <line x1="25" y1="16" x2="20" y2="20" stroke-width="1" opacity="0.5"/>
+          </svg>
+          <h2 class="card-title">Active Membranes</h2>
+          <p class="card-desc">Analyse P-systems with active membranes. Find all maximally parallel sets of applicable rewriting rules.</p>
+          <div class="card-cta">Open analyser <span aria-hidden="true">&#8594;</span></div>
+        </div>
+
+        <!-- Card 2: P-Systems Simulator -->
+        <div class="card" data-tool="psystems" tabindex="0" role="button"
+             onclick="openTool('p-systems.html', 'psystems')"
+             onkeydown="if(event.key==='Enter')openTool('p-systems.html','psystems')"
+             aria-label="Open P-System Visual Simulator">
+          <div class="card-tag">G &mdash; 02</div>
+          <!-- Membrane hierarchy icon -->
+          <svg class="card-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="3" y="3" width="34" height="34" rx="6" stroke-dasharray="4 2"/>
+            <rect x="10" y="10" width="20" height="20" rx="4"/>
+            <rect x="16" y="16" width="8" height="8" rx="2" fill="currentColor" opacity="0.3" stroke="currentColor" stroke-width="1"/>
+            <circle cx="20" cy="20" r="1.5" fill="currentColor" stroke="none"/>
+          </svg>
+          <h2 class="card-title">P-System Simulator</h2>
+          <p class="card-desc">Step-by-step visual simulation of membrane computing. Define, load, and evolve P-systems with nested membranes.</p>
+          <div class="card-cta">Open simulator <span aria-hidden="true">&#8594;</span></div>
+        </div>
+
+        <!-- Card 3: Robot Swarms -->
+        <div class="card" data-tool="swarms" tabindex="0" role="button"
+             onclick="openTool('robot-swarms.html', 'swarms')"
+             onkeydown="if(event.key==='Enter')openTool('robot-swarms.html','swarms')"
+             aria-label="Open Robot Swarm Simulator">
+          <div class="card-tag">T &mdash; 03</div>
+          <!-- Swarm/grid icon -->
+          <svg class="card-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <circle cx="20" cy="20" r="3.5" fill="currentColor" opacity="0.4" stroke="currentColor"/>
+            <circle cx="9"  cy="14" r="2.5"/>
+            <circle cx="31" cy="14" r="2.5"/>
+            <circle cx="9"  cy="26" r="2.5"/>
+            <circle cx="31" cy="26" r="2.5"/>
+            <circle cx="20" cy="7"  r="2.5"/>
+            <circle cx="20" cy="33" r="2.5"/>
+            <line x1="11.5" y1="15.5" x2="17.5" y2="18" stroke-width="1" opacity="0.5"/>
+            <line x1="28.5" y1="15.5" x2="22.5" y2="18" stroke-width="1" opacity="0.5"/>
+            <line x1="11.5" y1="24.5" x2="17.5" y2="22" stroke-width="1" opacity="0.5"/>
+            <line x1="28.5" y1="24.5" x2="22.5" y2="22" stroke-width="1" opacity="0.5"/>
+            <line x1="20"   y1="9.5"  x2="20"   y2="16.5" stroke-width="1" opacity="0.5"/>
+            <line x1="20"   y1="30.5" x2="20"   y2="23.5" stroke-width="1" opacity="0.5"/>
+          </svg>
+          <h2 class="card-title">Robot Swarms</h2>
+          <p class="card-desc">Simulate connectivity-preserving transformations in robot swarms via pivot rotations on a square grid.</p>
+          <div class="card-cta">Open simulator <span aria-hidden="true">&#8594;</span></div>
+        </div>
+      </div>
+
+      <!-- Scrolling DNA sequence decoration -->
+      <div class="seq-ticker" id="seq-ticker" aria-hidden="true"></div>
+    </div>
+
+    <!-- Tool iframe view -->
+    <div id="tool-view" aria-label="Tool">
+      <iframe id="tool-frame" src="" title="Selected tool" allowfullscreen></iframe>
+    </div>
+  </main>
+</div>
+
+<script>
+  /* ================================================================
+     THEME
+  ================================================================ */
+  const html = document.documentElement;
+
+  (function initTheme() {
+    const saved = localStorage.getItem('pm-theme') || 'dark';
+    html.setAttribute('data-theme', saved);
+    updateThemeLabel(saved);
+  })();
+
+  function updateThemeLabel(theme) {
+    const el = document.getElementById('theme-icon-label');
+    if (el) el.textContent = theme === 'dark' ? 'dark' : 'light';
+  }
+
+  function toggleTheme() {
+    const cur  = html.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('pm-theme', next);
+    updateThemeLabel(next);
+  }
+
+  /* ================================================================
+     NAVIGATION
+  ================================================================ */
+  function showLanding() {
+    document.getElementById('landing').classList.remove('hidden');
+    document.getElementById('tool-view').classList.remove('active');
+    document.getElementById('tool-frame').src = '';
+    setActiveTab('home');
+  }
+
+  function openTool(src, toolId) {
+    document.getElementById('tool-frame').src = src;
+    document.getElementById('landing').classList.add('hidden');
+    document.getElementById('tool-view').classList.add('active');
+    setActiveTab(toolId);
+  }
+
+  function setActiveTab(id) {
+    document.querySelectorAll('.tool-tab').forEach(t => {
+      t.classList.remove('active');
+      t.removeAttribute('aria-current');
+    });
+    const tab = document.getElementById('tab-' + id);
+    if (tab) {
+      tab.classList.add('active');
+      tab.setAttribute('aria-current', 'page');
+    }
+  }
+
+  // logo keyboard nav
+  document.querySelector('.logo').addEventListener('keydown', e => {
+    if (e.key === 'Enter') showLanding();
+  });
+
+  /* ================================================================
+     DNA CANVAS ANIMATION
+  ================================================================ */
+  const canvas = document.getElementById('dna-canvas');
+  const ctx    = canvas.getContext('2d');
+  let   animT  = 0;
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* Helix config */
+  const HELICES = [
+    { xFrac: 0.08,  phaseOff: 0 },
+    { xFrac: 0.92,  phaseOff: Math.PI * 0.85 },
+    { xFrac: 0.5,   phaseOff: Math.PI * 1.3  },
+  ];
+
+  const RUNG_KEYS = ['rung-0','rung-1','rung-2','rung-3'];
+
+  function getCSSColor(varName) {
+    return getComputedStyle(html).getPropertyValue('--' + varName).trim();
+  }
+
+  function drawHelix(cx, phaseOff, alpha) {
+    const amp        = Math.min(55, canvas.width * 0.04);
+    const waveLen    = 130;
+    const h          = canvas.height + 80;
+    const s1rgb      = getCSSColor('strand-1');
+    const s2rgb      = getCSSColor('strand-2');
+    const rungRgbs   = RUNG_KEYS.map(k => getCSSColor(k));
+
+    /* Base pair rungs */
+    const rungStep = 22;
+    for (let y = -40; y < h; y += rungStep) {
+      const t  = (y / waveLen) * Math.PI * 2 + animT + phaseOff;
+      const x1 = cx + Math.sin(t) * amp;
+      const x2 = cx + Math.sin(t + Math.PI) * amp;
+      const ri = Math.floor((y + 40) / rungStep) % 4;
+      const rc = rungRgbs[ri];
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y);
+      ctx.lineTo(x2, y);
+      ctx.strokeStyle = `rgba(${rc}, ${alpha * 0.38})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      /* Nucleotide dots */
+      ctx.beginPath();
+      ctx.arc(x1, y, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${rc}, ${alpha * 0.7})`;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(x2, y, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${rc}, ${alpha * 0.7})`;
+      ctx.fill();
+    }
+
+    /* Strand 1 */
+    ctx.beginPath();
+    for (let y = -40; y < h; y += 2) {
+      const t = (y / waveLen) * Math.PI * 2 + animT + phaseOff;
+      const x = cx + Math.sin(t) * amp;
+      y === -40 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = `rgba(${s1rgb}, ${alpha * 0.75})`;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    /* Strand 2 */
+    ctx.beginPath();
+    for (let y = -40; y < h; y += 2) {
+      const t = (y / waveLen) * Math.PI * 2 + animT + phaseOff;
+      const x = cx + Math.sin(t + Math.PI) * amp;
+      y === -40 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = `rgba(${s2rgb}, ${alpha * 0.75})`;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  }
+
+  function frame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const alpha = parseFloat(getCSSColor('canvas-alpha')) || 0.5;
+    for (const h of HELICES) {
+      drawHelix(canvas.width * h.xFrac, h.phaseOff, alpha);
+    }
+    animT += 0.004;
+    requestAnimationFrame(frame);
+  }
+
+  frame();
+
+  /* ================================================================
+     DNA SEQUENCE TICKER
+  ================================================================ */
+  const BASES    = 'ATGCATGCTAGCGCGTATGCATTAGCGCATGCAT';
+  const ticker   = document.getElementById('seq-ticker');
+  let   seqOff   = 0;
+
+  function tickSequence() {
+    if (!ticker) return;
+    const cols = Math.floor(ticker.clientWidth / 9) + 4;
+    let   seq  = '';
+    for (let i = 0; i < cols; i++) seq += BASES[(i + seqOff) % BASES.length];
+    ticker.textContent = seq;
+    seqOff = (seqOff + 1) % BASES.length;
+  }
+
+  setInterval(tickSequence, 120);
+</script>
+
+</body>
+</html>
