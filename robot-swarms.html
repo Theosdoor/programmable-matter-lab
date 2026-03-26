@@ -93,6 +93,20 @@
         .info-box { min-height: 60px; }
         button, input[type="number"] { padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 1rem; }
         input[type="number"] { width: 80px; }
+
+        /* Scrollable wrapper so the fixed-size grid never clips on small screens */
+        .grid-scroll-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .grid-wrapper { min-width: max-content; }
+
+        @media (max-width: 640px) {
+            /* Buttons fill half the row so they stay tappable */
+            .controls-container button {
+                flex: 1 1 calc(50% - 0.25rem);
+            }
+        }
         
         #rotationSequence li {
             padding: 0.5rem 0;
@@ -158,10 +172,12 @@
             </div>
         </div>
 
-        <div class="grid-wrapper mb-6">
-            <div id="colLabelContainer"></div>
-            <div id="rowLabelContainer"></div>
-            <div id="gridContainer"></div>
+        <div class="grid-scroll-wrapper mb-6">
+            <div class="grid-wrapper">
+                <div id="colLabelContainer"></div>
+                <div id="rowLabelContainer"></div>
+                <div id="gridContainer"></div>
+            </div>
         </div>
 
 
