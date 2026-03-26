@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P-System Visual Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .editor-area {
+            border: 2px dashed #cbd5e1; /* gray-300 */
+            min-height: 400px;
+            padding: 10px;
+            border-radius: 8px;
+            position: relative;
+            background-color: #f9fafb; /* gray-50 */
+        }
+        .membrane-draggable {
+            border: 2px solid;
+            padding: 12px;
+            margin: 8px;
+            border-radius: 8px;
+            background-color: #fff;
+            min-width: 200px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .membrane-drag-handle {
+            cursor: grab;
+            padding: 4px 0;
+        }
+        .membrane-drag-handle:active {
+            cursor: grabbing;
+        }
+        .membrane-draggable:active {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        /* Color scheme for membranes */
+        .membrane-skin-bg { border-color: #3b82f6; background-color: #eff6ff; } /* blue-500, blue-50 (Used for skin membrane '3') */
+        .membrane-color-0 { border-color: #10b981; background-color: #f0fdf4; } /* emerald-500, emerald-50 (Used for membrane '1') */
+        .membrane-color-1 { border-color: #f97316; background-color: #fff7ed; } /* orange-500, orange-50 (Used for membrane '2') */
+        .membrane-color-2 { border-color: #8b5cf6; background-color: #f5f3ff; } /* violet-500, violet-50 */
+        .membrane-color-3 { border-color: #ec4899; background-color: #fdf2f8; } /* pink-500, pink-50 */
+        .membrane-default-bg { border-color: #6b7280; background-color: #f3f4f6; } /* gray-500, gray-100 */
+
+        .membrane-content {
+            min-height: 50px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .membrane-draggable input[type="text"], .membrane-draggable textarea {
+            width: 100%;
+            padding: 6px;
+            margin-top: 4px;
+            margin-bottom: 8px;
+            border: 1px solid #d1d5db; /* gray-300 */
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .membrane-draggable label {
+            font-size: 0.8em;
+            font-weight: 500;
+            color: #4b5563; /* gray-600 */
+        }
+        .object-tag {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #1f2937; /* gray-800 */
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            display: inline-block;
+        }
+        .drop-target-highlight {
+            background-color: #bfdbfe !important; /* blue-200 */
+            outline: 2px dashed #3b82f6; /* blue-500 */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .controls-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .main-layout {
+                flex-direction: column;
+            }
+            #psystem-editor-container, #simulation-display-container {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-8">
+    <div class="container mx-auto max-w-7xl bg-white shadow-xl rounded-lg p-6">
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl font-bold text-gray-700">P-System Visual Simulator</h1>
+        </header>
+
+        <div class="mb-4">
+            <button id="add-membrane-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out">Add New Membrane</button>
+        </div>
+
+        <div class="main-layout flex flex-col lg:flex-row gap-6">
+            <div id="psystem-editor-container" class="lg:w-3/5 space-y-4">
+                <h2 class="text-xl font-semibold text-gray-600">1. Define P-System Visually</h2>
+                <p class="text-sm text-gray-500">
+                    Objects: <code>a:2,b</code>. Rules: <code>lhs -> rhs</code>. Default target is <code>(here)</code>.
+                    Specify targets: <code>obj(here)</code>, <code>obj(out)</code>, <code>obj(out@target_id)</code>.
+                    Dissolve: <code>... DELTA</code>.
+                </p>
+                <div id="visual-editor-area" class="editor-area">
+                    <!-- Visual membranes will be added here by JavaScript -->
+                </div>
+            </div>
+
+            <div id="simulation-display-container" class="lg:w-2/5 space-y-4">
+                <h2 class="text-xl font-semibold text-gray-600">2. Simulation Controls & State</h2>
+                <div class="controls-grid grid grid-cols-2 gap-3">
+                    <button id="load-psystem" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out">Load System</button>
+                    <button id="step-simulation" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out" disabled>Step</button>
+                    <button id="run-simulation" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out" disabled>Run (10 Steps)</button>
+                    <button id="reset-simulation" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out" disabled>Reset</button>
+                </div>
+                <div id="simulation-status" class="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700 min-h-[50px]">
+                    Current Step: 0. System not loaded.
+                </div>
+                <div id="membranes-display" class="space-y-3 max-h-80 overflow-y-auto border p-2 rounded-md bg-gray-50">
+                    <!-- Membrane states will be rendered here by JavaScript -->
+                </div>
+                <div>
+                    <h3 class="text-md font-semibold text-gray-500 mt-2 mb-1">Environment:</h3>
+                    <div id="environment-display" class="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700 min-h-[40px] max-h-40 overflow-y-auto">
+                        <em>empty</em> <!-- Environment objects will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+         <div class="mt-6 p-4 bg-gray-50 rounded-md border">
+            <h3 class="text-lg font-semibold text-gray-600 mb-2">Log</h3>
+            <div id="log-output" class="h-32 overflow-y-auto text-xs bg-white p-2 border rounded-md">
+                <!-- Log messages will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Globals ---
+        let psystem = null; 
+        let initialPsystemState = null; 
+        let currentStep = 0;
+        const MAX_RUN_STEPS = 10;
+        let nextMembraneId = 1; 
+        let draggedElementData = null; 
+
+        // --- DOM Elements ---
+        const addMembraneButton = document.getElementById('add-membrane-btn');
+        const visualEditorArea = document.getElementById('visual-editor-area');
+        const loadButton = document.getElementById('load-psystem');
+        const stepButton = document.getElementById('step-simulation');
+        const runButton = document.getElementById('run-simulation');
+        const resetButton = document.getElementById('reset-simulation');
+        const statusDisplay = document.getElementById('simulation-status');
+        const membranesDisplay = document.getElementById('membranes-display'); 
+        const environmentDisplay = document.getElementById('environment-display');
+        const logOutput = document.getElementById('log-output');
+
+        // --- Event Listeners ---
+        addMembraneButton.addEventListener('click', () => {
+            const editor = document.getElementById('visual-editor-area');
+            if (!editor) {
+                logMessage('Error: visual-editor-area not found!', 'error');
+                return;
+            }
+            // By default, add new membranes to the top-level visual editor area.
+            // If a skin (e.g., mem '3') exists, users can drag new membranes into it.
+            createNewVisualMembrane('visual-editor-area', `new_obj:1`, `new_obj -> result`); 
+        });
+
+        loadButton.addEventListener('click', buildPsystemFromUIAndLoad);
+        stepButton.addEventListener('click', () => executeStep(true));
+        runButton.addEventListener('click', runSimulation);
+        resetButton.addEventListener('click', resetVisualSimulation);
+
+        // --- Utility Functions ---
+        function logMessage(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.textContent = `[${timestamp}] ${message}`;
+            if (type === 'error') entry.classList.add('text-red-500');
+            else if (type === 'warn') entry.classList.add('text-yellow-600');
+            logOutput.appendChild(entry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        // --- Visual Editor Functions ---
+        function createNewVisualMembrane(parentId = 'visual-editor-area', initialObjectsStr = '', rulesStr = '', desiredId = null) {
+            const currentMembraneNumericId = desiredId && !isNaN(parseInt(desiredId)) ? parseInt(desiredId) : nextMembraneId;
+            const membraneId = desiredId || `mem${nextMembraneId++}`;
+            
+            if (desiredId && !isNaN(parseInt(desiredId))) { 
+                 const numPart = parseInt(desiredId);
+                 if (numPart >= nextMembraneId) {
+                    nextMembraneId = numPart + 1;
+                 }
+            } else if (desiredId && desiredId.startsWith('mem')) {
+                const numPart = parseInt(desiredId.substring(3));
+                if (!isNaN(numPart) && numPart >= nextMembraneId) {
+                    nextMembraneId = numPart + 1;
+                }
+            }
+
+
+            const memDiv = document.createElement('div');
+            memDiv.classList.add('membrane-draggable');
+            
+            let colorIdx = currentMembraneNumericId -1;
+             if (desiredId && desiredId.match(/\d+/)) {
+                colorIdx = parseInt(desiredId.match(/\d+/)[0]) -1;
+            }
+
+            // Apply skin background for ID '3' or 'skin'
+            if (desiredId === '3' || desiredId === 'skin') {
+                memDiv.classList.add('membrane-skin-bg');
+            } else {
+                memDiv.classList.add(`membrane-color-${Math.max(0,colorIdx) % 4}`);
+            }
+
+            memDiv.setAttribute('id', `vis-${membraneId}`);
+            memDiv.setAttribute('data-membrane-id', membraneId);
+            
+            memDiv.innerHTML = `
+                <div class="membrane-drag-handle" draggable="true">
+                    <div class="flex justify-between items-center">
+                        <input type="text" value="${membraneId}" class="font-bold text-lg membrane-id-input" placeholder="Membrane ID" style="width: auto; border: none; background: transparent; outline: none; box-shadow: none;"/>
+                        <button class="remove-membrane-btn text-red-500 hover:text-red-700 text-xs p-1">Remove</button>
+                    </div>
+                </div>
+                <div>
+                    <label for="objects-${membraneId}">Initial Objects (e.g., a:2,b:1):</label>
+                    <input type="text" id="objects-${membraneId}" class="initial-objects-input" value="${initialObjectsStr}" placeholder="a:1, b:2">
+                </div>
+                <div>
+                    <label for="rules-${membraneId}">Rules (one per line):</label>
+                    <textarea id="rules-${membraneId}" class="rules-input" rows="3" placeholder="e.g., a -> b\nx,y -> z(out) DELTA">${rulesStr}</textarea>
+                </div>
+                <div class="membrane-content mt-2 border border-dashed border-gray-300 rounded min-h-[40px] bg-white/30">
+                </div>
+            `;
+
+            const parentElement = document.getElementById(parentId);
+            if (parentElement) {
+                const targetContainer = parentElement.classList.contains('editor-area') 
+                                        ? parentElement 
+                                        : parentElement.querySelector('.membrane-content');
+                if(targetContainer) {
+                    targetContainer.appendChild(memDiv);
+                } else {
+                    visualEditorArea.appendChild(memDiv); // Fallback
+                }
+            } else {
+                if (visualEditorArea) visualEditorArea.appendChild(memDiv);
+                else { logMessage(`FATAL: visualEditorArea is null when trying to append ${membraneId}.`, 'error'); return null; }
+            }
+            
+            const dragHandle = memDiv.querySelector('.membrane-drag-handle');
+            setupDragAndDrop(dragHandle, memDiv); 
+
+            memDiv.querySelector('.remove-membrane-btn').addEventListener('click', () => memDiv.remove());
+            
+            memDiv.querySelector('.membrane-id-input').addEventListener('change', (e) => {
+                const oldId = memDiv.dataset.membraneId;
+                const newId = e.target.value.trim();
+                if (newId && newId !== oldId) {
+                    memDiv.setAttribute('data-membrane-id', newId);
+                    memDiv.setAttribute('id', `vis-${newId}`); 
+                    logMessage(`Membrane ID changed from ${oldId} to ${newId}`, 'info');
+                } else {
+                    e.target.value = oldId; // Revert if invalid
+                }
+            });
+            
+            const contentArea = memDiv.querySelector('.membrane-content');
+            if (contentArea) addDropListeners(contentArea);
+
+            return memDiv;
+        }
+
+        function setupDragAndDrop(handleElement, draggableContainer) {
+            handleElement.addEventListener('dragstart', (e) => {
+                draggedElementData = draggableContainer; 
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', draggableContainer.id); 
+                setTimeout(() => { if(draggedElementData) draggedElementData.style.opacity = '0.5'; }, 0);
+            });
+
+            handleElement.addEventListener('dragend', () => { 
+                if(draggedElementData) draggedElementData.style.opacity = '1';
+                draggedElementData = null;
+                document.querySelectorAll('.drop-target-highlight').forEach(el => el.classList.remove('drop-target-highlight'));
+            });
+        }
+        
+        function addDropListeners(targetElementOrArea) {
+             targetElementOrArea.addEventListener('dragover', (e) => {
+                e.preventDefault(); 
+                e.dataTransfer.dropEffect = 'move';
+                if (draggedElementData && targetElementOrArea !== draggedElementData && !draggedElementData.contains(targetElementOrArea)) {
+                     targetElementOrArea.classList.add('drop-target-highlight');
+                }
+            });
+            targetElementOrArea.addEventListener('dragleave', () => targetElementOrArea.classList.remove('drop-target-highlight'));
+            targetElementOrArea.addEventListener('drop', (e) => {
+                e.preventDefault(); e.stopPropagation(); 
+                targetElementOrArea.classList.remove('drop-target-highlight');
+
+                if (draggedElementData && targetElementOrArea !== draggedElementData && !draggedElementData.contains(targetElementOrArea)) {
+                    let actualDropTarget = targetElementOrArea.classList.contains('membrane-content') || targetElementOrArea.classList.contains('editor-area') 
+                                           ? targetElementOrArea 
+                                           : targetElementOrArea.closest('.membrane-draggable')?.querySelector('.membrane-content') || visualEditorArea;
+                    
+                    if (actualDropTarget) {
+                        actualDropTarget.appendChild(draggedElementData);
+                    } else {
+                        visualEditorArea.appendChild(draggedElementData);
+                    }
+                }
+                if (draggedElementData) draggedElementData.style.opacity = '1'; 
+                draggedElementData = null; 
+            });
+        }
+        addDropListeners(visualEditorArea);
+
+        // --- P-System Logic & Parsing ---
+        function parseMultiset(str) { 
+            const multiset = new Map();
+            if (!str || str.trim() === '') return multiset;
+            str.split(',').forEach(part => {
+                part = part.trim(); if (!part) return;
+                const [objRaw, countStr] = part.split(':');
+                const obj = objRaw.trim();
+                const count = countStr ? parseInt(countStr.trim()) : 1;
+                if (obj && !isNaN(count) && count > 0) {
+                    multiset.set(obj, (multiset.get(obj) || 0) + count);
+                } else if (obj && !countStr) {
+                     multiset.set(obj, (multiset.get(obj) || 0) + 1);
+                }
+            });
+            return multiset;
+        }
+        
+        function parseRuleRHS(rhsStr) { 
+            const products = [];
+            let dissolves = false;
+            if (rhsStr.toUpperCase().includes('DELTA')) {
+                dissolves = true;
+                rhsStr = rhsStr.replace(/\bDELTA\b/ig, '').trim();
+            }
+
+            if (rhsStr.trim() === '') return { products, dissolves };
+
+            rhsStr.split(',').forEach(part => {
+                part = part.trim();
+                if (!part) return;
+                const match = part.match(/([\w:]+)\s*(?:\((here|out|out@[\w-]+)\))?/i);
+                
+                if (match) {
+                    const objFull = match[1];
+                    const targetInfo = match[2];
+
+                    let objName = objFull;
+                    let count = 1;
+                    if (objFull.includes(':')) {
+                        const [objNameStr, countStr] = objFull.split(':');
+                        objName = objNameStr.trim();
+                        count = parseInt(countStr.trim(), 10);
+                        if (isNaN(count)) count = 1;
+                    }
+                    
+                    let targetType = 'here';
+                    let targetMembrane = null;
+
+                    if (targetInfo) {
+                        const targetInfoLower = targetInfo.toLowerCase();
+                        if (targetInfoLower.startsWith('out@')) {
+                            targetType = 'out@';
+                            targetMembrane = targetInfo.substring(4);
+                        } else if (targetInfoLower === 'out') {
+                            targetType = 'out';
+                        } else if (targetInfoLower === 'here') {
+                            targetType = 'here';
+                        }
+                    }
+                    products.push({ obj: objName.trim(), count: count || 1, target: targetType, targetMembrane });
+                } else { 
+                    let objName = part;
+                    let count = 1;
+                    if (part.includes(':')) {
+                        const [objNameStr, countStr] = part.split(':');
+                        objName = objNameStr.trim();
+                        count = parseInt(countStr.trim(), 10);
+                         if (isNaN(count)) count = 1;
+                    }
+                    products.push({ obj: objName.trim(), count: count || 1, target: 'here', targetMembrane: null });
+                }
+            });
+            return { products, dissolves };
+        }
+
+        function buildPsystemFromUIAndLoad() {
+            psystem = { membranes: new Map(), rules: [], environmentObjects: new Map() };
+            let ruleCounter = 0;
+
+            function processVisualMembrane(element, parentMembraneIdInPsystem) {
+                const currentMembraneIdInput = element.querySelector('.membrane-id-input');
+                const currentMembraneId = currentMembraneIdInput ? currentMembraneIdInput.value.trim() : element.dataset.membraneId;
+                element.setAttribute('data-membrane-id', currentMembraneId);
+
+                const initialObjectsStr = element.querySelector('.initial-objects-input').value;
+                const rulesStr = element.querySelector('.rules-input').value;
+
+                psystem.membranes.set(currentMembraneId, {
+                    id: currentMembraneId,
+                    parentId: parentMembraneIdInPsystem,
+                    initialObjects: parseMultiset(initialObjectsStr),
+                    objects: new Map(parseMultiset(initialObjectsStr)),
+                    dissolved: false,
+                    label: currentMembraneId
+                });
+
+                rulesStr.split('\n').forEach(ruleLine => {
+                    ruleLine = ruleLine.trim();
+                    if (ruleLine === '' || ruleLine.startsWith('//')) return;
+
+                    const parts = ruleLine.split('->');
+                    if (parts.length < 2) {
+                        logMessage(`Invalid rule (missing '->'): "${ruleLine}" in membrane ${currentMembraneId}. Skipping.`, 'warn');
+                        return;
+                    }
+                    const [lhsStr, rhsFullStr] = parts.map(s => s.trim());
+                    
+                    if (!lhsStr) {
+                         logMessage(`Invalid rule (empty LHS): "${ruleLine}" in membrane ${currentMembraneId}. Skipping.`, 'warn');
+                        return;
+                    }
+
+                    const { products, dissolves } = parseRuleRHS(rhsFullStr);
+                    
+                    psystem.rules.push({
+                        id: `rule${++ruleCounter}`,
+                        originalRuleString: ruleLine,
+                        membraneId: currentMembraneId,
+                        lhs: parseMultiset(lhsStr),
+                        rhsProducts: products,
+                        dissolves: dissolves,
+                    });
+                });
+
+                const childrenContentArea = element.querySelector('.membrane-content');
+                if (childrenContentArea) {
+                    Array.from(childrenContentArea.children)
+                         .filter(c => c.classList.contains('membrane-draggable'))
+                         .forEach(childVisualElement => processVisualMembrane(childVisualElement, currentMembraneId));
+                }
+            }
+            
+            // Process top-level membranes. Their parentId in the P-system will be null.
+            Array.from(visualEditorArea.children)
+                .filter(c => c.classList.contains('membrane-draggable'))
+                .forEach(childElement => {
+                    processVisualMembrane(childElement, null); // Top-level elements have null parent in P-system
+            });
+
+            initialPsystemState = {
+                membranes: new Map(Array.from(psystem.membranes.entries()).map(([id, mem]) => [id, {
+                    ...mem,
+                    initialObjects: new Map(mem.initialObjects),
+                    objects: new Map(mem.objects)
+                }])),
+                environmentObjects: new Map(psystem.environmentObjects)
+            };
+
+            currentStep = 0;
+            updateSimulationDisplay();
+            enableButtons(true);
+            logMessage('P-System loaded from visual editor.');
+        }
+        
+        // --- Simulation Execution Functions ---
+        function canApplyRule(ruleLHS, membraneObjects) {
+            if (!ruleLHS || ruleLHS.size === 0) return false;
+            for (const [obj, count] of ruleLHS) {
+                if ((membraneObjects.get(obj) || 0) < count) return false;
+            }
+            return true;
+        }
+
+        function subtractObjects(targetMap, objectsToSubtract) { 
+            for (const [obj, count] of objectsToSubtract) {
+                const currentCount = targetMap.get(obj) || 0;
+                if (currentCount >= count) {
+                    targetMap.set(obj, currentCount - count);
+                    if (targetMap.get(obj) === 0) targetMap.delete(obj);
+                } else { 
+                    logMessage(`Error: Tried to subtract ${count} of ${obj}, but only ${currentCount} available.`, "error");
+                    return false; 
+                } 
+            }
+            return true;
+        }
+
+        function addObjects(targetMap, objectsToAdd) { 
+            for (const [obj, count] of objectsToAdd) {
+                targetMap.set(obj, (targetMap.get(obj) || 0) + count);
+            }
+        }
+        
+        function executeStep(manualStep = false) {
+            if (!psystem || !psystem.membranes || psystem.membranes.size === 0) {
+                logMessage('System not loaded or empty. Cannot execute step.', 'error'); return false;
+            }
+            currentStep++;
+            logMessage(`--- Step ${currentStep} ---`);
+            let overallSystemChangedInStep = false;
+            
+            const allMembraneOutputs = new Map(); 
+            const environmentOutputs = new Map(); 
+            const membranesToDissolveThisStep = new Set();
+            const ruleApplicationsInStep = new Map();
+
+            // Phase 1: Identify applicable rules and count applications
+            psystem.membranes.forEach(membrane => {
+                if (membrane.dissolved) return;
+
+                const availableObjectsInMembrane = new Map(membrane.objects);
+                const rulesForThisMembrane = psystem.rules.filter(r => r.membraneId === membrane.id);
+                
+                if (!ruleApplicationsInStep.has(membrane.id)) {
+                    ruleApplicationsInStep.set(membrane.id, new Map());
+                }
+                const membraneRuleApplications = ruleApplicationsInStep.get(membrane.id);
+
+                let localChange = true;
+                let iterationSafety = 0;
+                const MAX_RULE_APPLICATIONS_PER_MEMBRANE_PER_STEP = 100; 
+
+                while(localChange && iterationSafety < MAX_RULE_APPLICATIONS_PER_MEMBRANE_PER_STEP) {
+                    localChange = false;
+                    iterationSafety++;
+                    for (const rule of rulesForThisMembrane) {
+                        while (canApplyRule(rule.lhs, availableObjectsInMembrane)) {
+                            subtractObjects(availableObjectsInMembrane, rule.lhs); 
+                            
+                            const currentRuleCount = membraneRuleApplications.get(rule.id) || 0;
+                            membraneRuleApplications.set(rule.id, currentRuleCount + 1);
+                            
+                            localChange = true;
+                            overallSystemChangedInStep = true;
+                        }
+                    }
+                }
+                if(iterationSafety >= MAX_RULE_APPLICATIONS_PER_MEMBRANE_PER_STEP) {
+                    logMessage(`Warning: Max rule applications reached in membrane ${membrane.id} for step ${currentStep} during counting phase.`, "warn");
+                }
+            });
+
+            // Phase 2: Apply consumptions and distribute products
+            ruleApplicationsInStep.forEach((rulesAppliedMap, membraneId) => {
+                const membrane = psystem.membranes.get(membraneId);
+                if (!membrane || membrane.dissolved) return;
+
+                rulesAppliedMap.forEach((applicationCount, ruleId) => {
+                    if (applicationCount === 0) return;
+
+                    const rule = psystem.rules.find(r => r.id === ruleId);
+                    if (!rule) {
+                        logMessage(`Error: Rule with ID ${ruleId} not found during application phase.`, "error");
+                        return;
+                    }
+
+                    logMessage(`Applying rule '${rule.originalRuleString || rule.id}' ${applicationCount} time(s) in ${membrane.id}.`);
+
+                    for (let i = 0; i < applicationCount; i++) {
+                        if (!subtractObjects(membrane.objects, rule.lhs)) {
+                            logMessage(`Error: Failed to subtract objects for rule '${rule.originalRuleString}' in ${membrane.id} on application ${i+1}. Halting.`, "error");
+                            break;
+                        }
+
+                        rule.rhsProducts.forEach(prod => {
+                            const productMultiset = new Map([[prod.obj, prod.count]]);
+                            if (prod.target === 'here') {
+                                addObjects(membrane.objects, productMultiset);
+                            } else if (prod.target === 'out') {
+                                if (membrane.parentId) { 
+                                    if (!allMembraneOutputs.has(membrane.parentId)) allMembraneOutputs.set(membrane.parentId, new Map());
+                                    addObjects(allMembraneOutputs.get(membrane.parentId), productMultiset);
+                                } else { // No parentId means it's a root membrane, send to environment
+                                    addObjects(environmentOutputs, productMultiset);
+                                }
+                            } else if (prod.target === 'out@') { 
+                                if (prod.targetMembrane) {
+                                    if (!allMembraneOutputs.has(prod.targetMembrane)) allMembraneOutputs.set(prod.targetMembrane, new Map());
+                                    addObjects(allMembraneOutputs.get(prod.targetMembrane), productMultiset);
+                                } else {
+                                    logMessage(`Warning: Rule in ${membrane.id} has target 'out@' but no targetMembrane for product ${prod.obj}.`, 'warn');
+                                }
+                            }
+                        });
+                        if (rule.dissolves) membranesToDissolveThisStep.add(membrane.id);
+                    }
+                });
+            });
+            
+            // Phase 3: Add outputs to target membranes
+            allMembraneOutputs.forEach((objectsToAdd, targetMemId) => {
+                const targetMem = psystem.membranes.get(targetMemId);
+                if (targetMem && !targetMem.dissolved) { 
+                    addObjects(targetMem.objects, objectsToAdd);
+                } else if (targetMem && targetMem.dissolved) {
+                    logMessage(`Warning: Objects for dissolved membrane ${targetMemId} were not delivered.`, 'warn');
+                } else {
+                     logMessage(`Warning: Target membrane ${targetMemId} for output not found.`, 'warn');
+                }
+            });
+
+            // Phase 4: Add outputs to the global environment
+            if (environmentOutputs.size > 0) {
+                if (!psystem.environmentObjects) psystem.environmentObjects = new Map(); 
+                addObjects(psystem.environmentObjects, environmentOutputs);
+            }
+
+            // Phase 5: Handle dissolutions
+            membranesToDissolveThisStep.forEach(memIdToDissolve => {
+                const membraneToDissolve = psystem.membranes.get(memIdToDissolve);
+                if (!membraneToDissolve || membraneToDissolve.dissolved) return; 
+
+                if (!membraneToDissolve.parentId) { // Dissolving a root (e.g. skin) membrane
+                     logMessage(`Root membrane ${membraneToDissolve.id} dissolved. Its objects are moved to the environment.`, 'info');
+                     if (!psystem.environmentObjects) psystem.environmentObjects = new Map();
+                     addObjects(psystem.environmentObjects, membraneToDissolve.objects);
+                     // Children of this dissolved root membrane become new root membranes
+                     psystem.membranes.forEach(child => {
+                        if (child.parentId === membraneToDissolve.id) child.parentId = null;
+                     });
+                } else { // Dissolving a nested membrane
+                    const parentMem = psystem.membranes.get(membraneToDissolve.parentId);
+                    if (parentMem && !parentMem.dissolved) {
+                        addObjects(parentMem.objects, membraneToDissolve.objects); 
+                        // Re-parent children of the dissolved membrane to its parent (the grandparent)
+                        psystem.membranes.forEach(child => {
+                            if (child.parentId === membraneToDissolve.id) child.parentId = parentMem.id;
+                        });
+                        logMessage(`Membrane ${membraneToDissolve.id} dissolved. Objects moved to ${parentMem.id}.`, 'info');
+                    } else { // Parent is missing or dissolved
+                        logMessage(`Membrane ${membraneToDissolve.id} dissolved, but parent ${membraneToDissolve.parentId || 'N/A'} is missing/dissolved. Objects to environment.`, 'warn');
+                        if (!psystem.environmentObjects) psystem.environmentObjects = new Map();
+                        addObjects(psystem.environmentObjects, membraneToDissolve.objects);
+                         psystem.membranes.forEach(child => { // Children become root if grandparent is gone
+                            if (child.parentId === membraneToDissolve.id) child.parentId = null;
+                        });
+                    }
+                }
+                membraneToDissolve.objects.clear();
+                membraneToDissolve.dissolved = true;
+                overallSystemChangedInStep = true;
+            });
+
+            updateSimulationDisplay();
+            if (!overallSystemChangedInStep && manualStep) logMessage('System reached a stable state in this step.', 'info');
+            return overallSystemChangedInStep; 
+        }
+
+        function runSimulation() {
+            if (!psystem) { logMessage("Cannot run: P-System not loaded.", "error"); return; }
+            let stepsTakenThisRun = 0; 
+            let systemChangedInLastStep = true;
+            function singleAutoStep() {
+                if (stepsTakenThisRun < MAX_RUN_STEPS && systemChangedInLastStep) {
+                    systemChangedInLastStep = executeStep(false);
+                    stepsTakenThisRun++;
+                    if (systemChangedInLastStep) {
+                        setTimeout(singleAutoStep, 300);
+                    } else {
+                        logMessage(`Run finished: Stable state reached after ${stepsTakenThisRun} step(s). (Total steps: ${currentStep}).`, 'info');
+                    }
+                } else if (stepsTakenThisRun >= MAX_RUN_STEPS) {
+                     logMessage(`Run finished: Max steps (${MAX_RUN_STEPS}) reached. (Total steps: ${currentStep}).`, 'info');
+                }
+            }
+            singleAutoStep();
+        }
+        
+        function setupDefaultSystem() {
+            visualEditorArea.innerHTML = ''; 
+            nextMembraneId = 1;
+
+            // Create Membrane 3 (Skin) - parent is the main visual editor area
+            const mem3 = createNewVisualMembrane(
+                'visual-editor-area',
+                'x:1',                                     // Initial objects for membrane 3
+                'e -> e(out)\nx,c -> e(out)',             // Rules for membrane 3
+                '3'                                        // Desired ID for membrane 3
+            );
+            if (mem3) { // Hide remove button for skin membrane
+                const removeBtn3 = mem3.querySelector('.remove-membrane-btn');
+                if (removeBtn3) removeBtn3.style.display = 'none'; 
+            }
+
+            // Create Membrane 2 (nested inside Membrane 3)
+            const mem2 = createNewVisualMembrane(
+                `vis-3`,                                   // Parent is the visual element of membrane 3
+                '',                                        // No initial objects for membrane 2
+                'b -> b,e,c\nf,f -> f\nf -> DELTA',       // Rules for membrane 2
+                '2'                                        // Desired ID for membrane 2
+            );
+
+            // Create Membrane 1 (nested inside Membrane 2)
+            const mem1 = createNewVisualMembrane(
+                `vis-2`,                                   // Parent is the visual element of membrane 2
+                'a:1,f:1',                                 // Initial objects for membrane 1
+                'a -> a,b\na -> DELTA\nf -> f,f',        // Rules for membrane 1
+                '1'                                        // Desired ID for membrane 1
+            );
+            
+            // Ensure nextMembraneId is set beyond the highest manually assigned ID
+            nextMembraneId = Math.max(nextMembraneId, 4); // Since we used 1, 2, 3
+
+            logMessage('Default system with skin membrane "3" restored. Click "Load System" to simulate.');
+        }
+
+        function resetVisualSimulation() {
+            setupDefaultSystem(); 
+            psystem = null; 
+            initialPsystemState = null; 
+            currentStep = 0;
+            logMessage('Visual editor reset to default system. Click "Load System" to build and simulate.');
+            updateSimulationDisplay(); 
+            enableButtons(false); 
+        }
+
+        function updateSimulationDisplay() {
+            statusDisplay.textContent = `Step: ${currentStep}. ${psystem && psystem.membranes ? (psystem.membranes.size + ' membrane(s) active') : 'System not loaded.'}`;
+            membranesDisplay.innerHTML = ''; 
+            if (psystem && psystem.membranes) {
+                const getSimChildren = (parentId, allMemsMap) => {
+                    const children = [];
+                    allMemsMap.forEach(mem => { if (mem.parentId === parentId) children.push(mem); });
+                    return children.sort((a,b) => (String(a.label || a.id)).localeCompare(String(b.label || b.id)));
+                };
+                
+                const renderedSimIds = new Set(); 
+                const renderSimMembraneRecursive = (membrane, level, container, allMemsMap) => {
+                    if (!membrane || renderedSimIds.has(membrane.id)) return;
+                    renderedSimIds.add(membrane.id);
+
+                    const memDiv = document.createElement('div');
+                    memDiv.classList.add('membrane-display-item', 'p-2', 'm-1', 'border', 'rounded-md');
+                    
+                    let colorClass = 'membrane-default-bg';
+                    const idStr = String(membrane.id);
+                    const numericIdMatch = idStr.match(/\d+/); 
+                    let numericIdPart = numericIdMatch ? parseInt(numericIdMatch[0]) : -1;
+
+                    // Apply skin background for ID '3' or 'skin'
+                    if (idStr === '3' || idStr === 'skin') colorClass = 'membrane-skin-bg';
+                    else if (numericIdPart !== -1) colorClass = `membrane-color-${Math.max(0, numericIdPart -1) % 4}`; 
+                    
+                    memDiv.classList.add(...colorClass.split(' ')); 
+                    if (membrane.dissolved) { 
+                        memDiv.style.backgroundColor = '#d1d5db'; 
+                        memDiv.style.borderColor = '#9ca3af'; 
+                        memDiv.classList.add('opacity-70');
+                    }
+                    
+                    memDiv.style.marginLeft = `${level * 15}px`; 
+                    
+                    let objectsStr = "<em>empty</em>";
+                    const currentObjects = psystem.membranes.get(membrane.id)?.objects; 
+                    if (currentObjects && currentObjects.size > 0) {
+                         objectsStr = Array.from(currentObjects.entries()).filter(([, count]) => count > 0)
+                                         .map(([obj, count]) => `<span class="object-tag">${obj}:${count}</span>`).join(' ');
+                    }
+                    memDiv.innerHTML = `<strong class="text-md">${membrane.label||membrane.id} ${membrane.dissolved?'(Dissolved)':''}</strong><div class="mt-1 text-xs">${objectsStr||"<em>empty</em>"}</div>`;
+                    
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.classList.add('ml-2', 'mt-1'); 
+                    getSimChildren(membrane.id, allMemsMap).forEach(child => renderSimMembraneRecursive(child, 0, childrenContainer, allMemsMap)); 
+                    
+                    if (childrenContainer.children.length > 0) memDiv.appendChild(childrenContainer);
+                    container.appendChild(memDiv);
+                };
+                
+                const roots = []; 
+                psystem.membranes.forEach(mem => { 
+                    if (!mem.parentId || !psystem.membranes.has(mem.parentId)) roots.push(mem); 
+                });
+                roots.sort((a,b) => (String(a.label || a.id)).localeCompare(String(b.label || b.id)));
+                roots.forEach(rootMem => renderSimMembraneRecursive(rootMem, 0, membranesDisplay, psystem.membranes));
+
+                psystem.membranes.forEach(mem => {
+                    if (!renderedSimIds.has(mem.id)) {
+                        renderSimMembraneRecursive(mem, 0, membranesDisplay, psystem.membranes);
+                         logMessage(`Rendered orphaned membrane: ${mem.id}`, "warn");
+                    }
+                });
+            } else {
+                 membranesDisplay.innerHTML = "<em>No P-System loaded.</em>";
+            }
+
+            if (environmentDisplay) {
+                environmentDisplay.innerHTML = ''; 
+                if (psystem && psystem.environmentObjects && psystem.environmentObjects.size > 0) {
+                    const objectsStr = Array.from(psystem.environmentObjects.entries())
+                        .filter(([, count]) => count > 0) 
+                        .map(([obj, count]) => `<span class="object-tag">${obj}:${count}</span>`).join(' ');
+                    environmentDisplay.innerHTML = objectsStr;
+                } else {
+                    environmentDisplay.innerHTML = "<em>empty</em>";
+                }
+            }
+        }
+        
+        function enableButtons(systemIsLoaded) {
+            stepButton.disabled = !systemIsLoaded;
+            runButton.disabled = !systemIsLoaded;
+            resetButton.disabled = false; 
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDefaultSystem(); 
+            updateSimulationDisplay(); 
+            enableButtons(false); 
+            logMessage("Welcome! Default system is configured in the editor. Press 'Load System' to begin simulation.");
+        });
+    </script>
+</body>
+</html>

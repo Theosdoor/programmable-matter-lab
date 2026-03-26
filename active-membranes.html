@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P-System Maximally Parallel Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .psystem-input-label { font-weight: 600; color: #374151; margin-bottom: 0.25rem; display: block; }
+        .result-item { background-color: #f9fafb; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; margin-bottom: 0.5rem; }
+        .rule-tag { background-color: #e0e7ff; color: #4338ca; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.8em; margin-right: 0.25rem; margin-bottom: 0.25rem; display: inline-block; font-family: monospace; }
+        .error-message { color: #ef4444; font-weight: 500; }
+        .log-entry { font-size: 0.8rem; padding: 0.1rem 0; border-bottom: 1px dashed #eee; }
+        .log-entry:last-child { border-bottom: none; }
+
+        .editor-area { border: 2px dashed #cbd5e1; min-height: 300px; padding: 10px; border-radius: 8px; position: relative; background-color: #f9fafb; overflow-y: auto; }
+        .membrane-draggable { border: 2px solid; padding: 12px; margin: 8px; border-radius: 8px; background-color: #fff; min-width: 220px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .membrane-drag-handle { cursor: grab; padding: 4px 0; background-color: rgba(0,0,0,0.03); border-bottom: 1px solid #eee; margin: -12px -12px 8px -12px; padding: 8px 12px; border-top-left-radius: 6px; border-top-right-radius: 6px; }
+        .membrane-drag-handle:active { cursor: grabbing; }
+        .membrane-draggable:active { box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+
+        .membrane-skin-bg { border-color: #3b82f6; background-color: #eff6ff; }
+        .membrane-color-0 { border-color: #10b981; background-color: #f0fdf4; }
+        .membrane-color-1 { border-color: #f97316; background-color: #fff7ed; }
+        .membrane-color-2 { border-color: #8b5cf6; background-color: #f5f3ff; }
+        .membrane-color-3 { border-color: #ec4899; background-color: #fdf2f8; }
+        .membrane-default-bg { border-color: #6b7280; background-color: #f3f4f6; }
+
+        .membrane-content { min-height: 50px; padding: 8px; border-radius: 4px; margin-top: 8px; border: 1px dashed #d1d5db; background-color: rgba(255,255,255,0.5); }
+        .membrane-draggable input[type="text"], .membrane-draggable select { width: 100%; padding: 6px; margin-top: 4px; margin-bottom: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9em; }
+        .membrane-draggable .input-group { margin-bottom: 8px; }
+        .membrane-draggable label { font-size: 0.8em; font-weight: 500; color: #4b5563; display: block; margin-bottom: 2px; }
+        .drop-target-highlight { background-color: #bfdbfe !important; outline: 2px dashed #3b82f6; }
+        .charge-select { font-family: monospace; }
+
+        .rule-block { background-color: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .rule-block h4 { font-size: 1.0rem; font-weight: 600; color: #1f2937; margin-bottom: 0.75rem; }
+        .rule-input-group { margin-bottom: 0.75rem; }
+        .rule-input-group label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
+        .rule-input-group input[type="text"], .rule-input-group select, .rule-input-group textarea {
+            width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem; font-size: 0.875rem;
+            background-color: #f9fafb;
+        }
+        .rule-input-group textarea { min-height: 40px; font-family: monospace;}
+        .remove-rule-btn { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .remove-rule-btn:hover { background-color: #fca5a5; color: #991b1b; }
+        .add-rule-type-btn { background-color: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; margin-right: 0.5rem; margin-bottom:0.5rem; }
+        .add-rule-type-btn:hover { background-color: #c7d2fe; }
+        .rule-block .field-note { font-size: 0.75rem; color: #6b7280; margin-top: -0.5rem; margin-bottom: 0.5rem;}
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="container mx-auto max-w-6xl bg-white shadow-xl rounded-lg p-6 md:p-8">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">P-System Maximally Parallel Analyzer</h1>
+            <p class="text-gray-600 mt-2">Define your P-System with active membranes and find all maximally parallel sets of applicable rules.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label class="psystem-input-label">Membrane Structure & Initial State (Visual):</label>
+                    <button id="add-membrane-btn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-md text-sm shadow">Add Membrane</button>
+                </div>
+                <div id="visual-editor-area" class="editor-area h-96"></div>
+            </div>
+            <div>
+                <label class="psystem-input-label">Rules Definition:</label>
+                <div id="add-rule-buttons-container" class="mb-3 flex flex-wrap">
+                    <button data-rule-type="evolution" class="add-rule-type-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Add Evolution (a)</button>
+                    <button data-rule-type="send_in" class="add-rule-type-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Add Send-In (b)</button>
+                    <button data-rule-type="send_out" class="add-rule-type-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Add Send-Out (c)</button>
+                    <button data-rule-type="dissolution" class="add-rule-type-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Add Dissolution (d)</button>
+                    <button data-rule-type="elem_division" class="add-rule-type-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Add Elem. Div (e)</button>
+                    <button data-rule-type="non_elem_division" class="add-rule-type-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Add Non-Elem. Div (f)</button>
+                </div>
+                <div id="rules-list-container" class="space-y-4 h-[calc(24rem-2.5rem)] overflow-y-auto p-1 bg-gray-50 border rounded-md">
+                    </div>
+            </div>
+        </div>
+
+        <div class="text-center mb-8">
+            <button id="analyze-psystem-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-8 rounded-md shadow-md transition duration-150 ease-in-out text-lg">
+                Find Maximally Parallel Sets
+            </button>
+        </div>
+
+        <div id="results-container" class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Analysis Results:</h2>
+            <div id="error-display" class="mb-4"></div>
+            <div id="maximally-parallel-sets-display" class="space-y-3">
+                <p class="text-gray-500">No analysis performed yet.</p>
+            </div>
+        </div>
+        
+        <div class="mt-6 p-4 bg-gray-50 rounded-md border">
+            <h3 class="text-lg font-semibold text-gray-600 mb-2">Log</h3>
+            <div id="log-output" class="h-48 overflow-y-auto text-xs bg-white p-3 border rounded-md"></div>
+        </div>
+    </div>
+
+    <!-- TEMPLATES FOR RULE BLOCKS -->
+    <template id="rule-template-evolution">
+        <div class="rule-block" data-rule-type="evolution">
+            <div class="flex justify-between items-start"><h4 class="rule-title">Evolution Rule (a)</h4><button type="button" class="remove-rule-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Remove</button></div>
+            <div class="rule-input-group"><label>Membrane Label (h):</label><input type="text" class="main-mem-label" placeholder="e.g., 2"></div>
+            <div class="rule-input-group"><label>Initial Charge (α):</label><select class="main-mem-charge"><option value="+">+</option><option value="-">-</option><option value="0">0</option></select></div>
+            <div class="rule-input-group"><label>Consuming Object (a):</label><input type="text" class="consuming-obj" placeholder="e.g., c"></div>
+            <div class="rule-input-group"><label>Producing Objects (v) (in main_mem):</label><input type="text" class="evo-products" placeholder="e.g., d or d:2,e or lambda"></div>
+            <div class="rule-input-group"><label>Final Charge (α') (optional):</label><select class="evo-final-charge"><option value="">(No Change)</option><option value="+">+</option><option value="-">-</option><option value="0">0</option></select></div>
+            <p class="field-note">Example: <code>[h a -> v]h^α'</code> (if final charge changes) or <code>[h a -> v]h^α</code> (if no charge change)</p>
+        </div>
+    </template>
+
+    <template id="rule-template-send_in">
+        <div class="rule-block" data-rule-type="send_in">
+            <div class="flex justify-between items-start"><h4 class="rule-title">Send-In Rule (b)</h4><button type="button" class="remove-rule-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Remove</button></div>
+            <div class="rule-input-group"><label>Membrane Label (h):</label><input type="text" class="main-mem-label" placeholder="e.g., 1"></div>
+            <div class="rule-input-group"><label>Initial Charge (α):</label><select class="main-mem-charge"><option value="-">-</option><option value="+">+</option><option value="0">0</option></select></div>
+            <div class="rule-input-group"><label>Object In Parent (a):</label><input type="text" class="sendin-obj-parent" placeholder="e.g., a"></div>
+            <div class="rule-input-group"><label>Object Produced in Main (b):</label><input type="text" class="sendin-obj-main" placeholder="e.g., b"></div>
+            <div class="rule-input-group"><label>Final Charge (β):</label><select class="sendin-final-charge"><option value="+">+</option><option value="-">-</option><option value="0">0</option></select></div>
+            <p class="field-note">Example: <code>a [h]^α -> [h b]^β</code></p>
+        </div>
+    </template>
+
+    <template id="rule-template-send_out">
+        <div class="rule-block" data-rule-type="send_out">
+            <div class="flex justify-between items-start"><h4 class="rule-title">Send-Out Rule (c)</h4><button type="button" class="remove-rule-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Remove</button></div>
+            <div class="rule-input-group"><label>Membrane Label (h):</label><input type="text" class="main-mem-label" placeholder="e.g., 1"></div>
+            <div class="rule-input-group"><label>Initial Charge (α):</label><select class="main-mem-charge"><option value="+">+</option><option value="-">-</option><option value="0">0</option></select></div>
+            <div class="rule-input-group"><label>Object in Main (a):</label><input type="text" class="consuming-obj" placeholder="e.g., a"></div>
+            <div class="rule-input-group"><label>Object Produced in Parent (b):</label><input type="text" class="sendout-obj-parent" placeholder="e.g., b"></div>
+            <div class="rule-input-group"><label>Final Charge (β):</label><select class="sendout-final-charge"><option value="-">-</option><option value="+">+</option><option value="0">0</option></select></div>
+            <p class="field-note">Example: <code>[h a]^α -> [h]^β b</code></p>
+        </div>
+    </template>
+
+    <template id="rule-template-dissolution">
+        <div class="rule-block" data-rule-type="dissolution">
+            <div class="flex justify-between items-start"><h4 class="rule-title">Dissolution Rule (d)</h4><button type="button" class="remove-rule-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Remove</button></div>
+            <div class="rule-input-group"><label>Membrane Label (h):</label><input type="text" class="main-mem-label" placeholder="e.g., skin"></div>
+            <div class="rule-input-group"><label>Initial Charge (α):</label><select class="main-mem-charge"><option value="0">0</option><option value="+">+</option><option value="-">-</option></select></div>
+            <div class="rule-input-group"><label>Trigger Object in Main (a):</label><input type="text" class="consuming-obj" placeholder="e.g., x"></div>
+            <div class="rule-input-group"><label>Objects Released to Parent (b):</label><input type="text" class="diss-released-objs" placeholder="e.g., y,z or lambda"></div>
+            <p class="field-note">Example: <code>[h a]^α -> b</code> (b is multiset, can be lambda)</p>
+        </div>
+    </template>
+
+    <template id="rule-template-elem_division">
+        <div class="rule-block" data-rule-type="elem_division">
+            <div class="flex justify-between items-start"><h4 class="rule-title">Elementary Division Rule (e)</h4><button type="button" class="remove-rule-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Remove</button></div>
+            <div class="rule-input-group"><label>Membrane Label (h):</label><input type="text" class="main-mem-label" placeholder="e.g., 1"></div>
+            <div class="rule-input-group"><label>Initial Charge (α):</label><select class="main-mem-charge"><option value="0">0</option><option value="+">+</option><option value="-">-</option></select></div>
+            <div class="rule-input-group"><label>Trigger Object in Main (a):</label><input type="text" class="consuming-obj" placeholder="e.g., trigger"></div>
+            <p class="font-medium text-sm mb-1">Result Membrane 1:</p>
+            <div class="rule-input-group"><label>Label (h):</label><input type="text" class="ediv-r1-label" placeholder="Default: main label"></div>
+            <div class="rule-input-group"><label>Charge (β):</label><select class="ediv-r1-charge"><option value="+">+</option><option value="-">-</option><option value="0">0</option></select></div>
+            <div class="rule-input-group"><label>Contains Object (b):</label><input type="text" class="ediv-r1-obj" placeholder="e.g., objB"></div>
+            <p class="font-medium text-sm mb-1 mt-2">Result Membrane 2:</p>
+            <div class="rule-input-group"><label>Label (h):</label><input type="text" class="ediv-r2-label" placeholder="Default: main label"></div>
+            <div class="rule-input-group"><label>Charge (γ):</label><select class="ediv-r2-charge"><option value="-">-</option><option value="+">+</option><option value="0">0</option></select></div>
+            <div class="rule-input-group"><label>Contains Object (c):</label><input type="text" class="ediv-r2-obj" placeholder="e.g., objC"></div>
+            <p class="field-note">Example: <code>[h a]^α -> [h b]^β [h c]^γ</code></p>
+        </div>
+    </template>
+
+    <template id="rule-template-non_elem_division">
+        <div class="rule-block" data-rule-type="non_elem_division">
+            <div class="flex justify-between items-start"><h4 class="rule-title">Non-Elementary Division Rule (f)</h4><button type="button" class="remove-rule-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Remove</button></div>
+            <div class="rule-input-group"><label>Outer Membrane Label (h):</label><input type="text" class="main-mem-label" placeholder="e.g., 4"></div>
+            <div class="rule-input-group"><label>Outer Membrane Initial Charge (α):</label><select class="main-mem-charge"><option value="+">+</option><option value="-">-</option><option value="0">0</option></select></div>
+            <div class="rule-input-group"><label>LHS Inner Membranes (comma-sep: label:charge):</label><textarea class="fdiv-lhs-inner" placeholder="e.g., 2:+, 3:- OR 2:+, 3:-, 6:-"></textarea></div>
+            <p class="font-medium text-sm mb-1">Resulting Structure 1:</p>
+            <div class="rule-input-group"><label>Outer Label:</label><input type="text" class="fdiv-r1-outer-label" placeholder="Default: outer label"></div>
+            <div class="rule-input-group"><label>Outer Charge (β):</label><select class="fdiv-r1-outer-charge"><option value="0">0</option><option value="+">+</option><option value="-">-</option></select></div>
+            <div class="rule-input-group"><label>Contains Inner Membranes (label:new_charge, ...):</label><textarea class="fdiv-r1-inner" placeholder="e.g., 2:0, 3:+"></textarea></div>
+            <p class="font-medium text-sm mb-1 mt-2">Resulting Structure 2:</p>
+            <div class="rule-input-group"><label>Outer Label:</label><input type="text" class="fdiv-r2-outer-label" placeholder="Default: outer label"></div>
+            <div class="rule-input-group"><label>Outer Charge (γ):</label><select class="fdiv-r2-outer-charge"><option value="0">0</option><option value="+">+</option><option value="-">-</option></select></div>
+            <div class="rule-input-group"><label>Contains Inner Membranes (label:new_charge, ...):</label><textarea class="fdiv-r2-inner" placeholder="e.g., 6:-"></textarea></div>
+            <p class="field-note">Example: <code>[h [g1]^c1 [g2]^c2 ...]^α -> [h [g_set1]...]^β [h [g_set2]...]^γ</code></p>
+        </div>
+    </template>
+
+    <script>
+        // --- DOM Elements ---
+        const logOutputEl = document.getElementById('log-output');
+        const errorDisplayEl = document.getElementById('error-display');
+        const analyzeBtnEl = document.getElementById('analyze-psystem-btn');
+        const resultsDisplayEl = document.getElementById('maximally-parallel-sets-display');
+        const addMembraneButton = document.getElementById('add-membrane-btn');
+        const visualEditorArea = document.getElementById('visual-editor-area');
+        const addRuleButtonsContainer = document.getElementById('add-rule-buttons-container');
+        const rulesListContainer = document.getElementById('rules-list-container');
+        let nextMembraneNumericId = 1;
+        let draggedElementData = null;
+        let ruleFormCounter = 0; // For unique IDs for rule forms
+
+        // --- Logging and Error Display (same as before) ---
+        function log(message, type = 'info') { /* ... */ }
+        function displayError(message) { /* ... */ }
+        function clearError() { /* ... */ }
+        // Actual log, displayError, clearError implementations from previous version
+        function log(message, type = 'info') { const entry = document.createElement('div'); entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`; entry.classList.add('log-entry'); if (type === 'error') entry.style.color = '#ef4444'; else if (type === 'warn') entry.style.color = '#f59e0b'; logOutputEl.appendChild(entry); logOutputEl.scrollTop = logOutputEl.scrollHeight; }
+        function displayError(message) { errorDisplayEl.innerHTML = `<p class="error-message p-3 bg-red-100 border border-red-300 rounded-md">${message}</p>`; }
+        function clearError() { errorDisplayEl.innerHTML = ''; }
+
+
+        // --- Visual Membrane Editor Functions (largely same as before) ---
+        function createNewVisualMembrane(parentIdContainer, initialId = null, initialCharge = '0', initialObjectsStr = '') { /* ... */ }
+        function setupDragAndDrop(handle, container) { /* ... */ }
+        function addDropListeners(target) { /* ... */ }
+        // Actual implementations from previous version
+        function createNewVisualMembrane(parentIdContainer, initialId = null, initialCharge = '0', initialObjectsStr = '') { const membraneNumericId = nextMembraneNumericId++; const membraneId = initialId || `mem${membraneNumericId}`; const memDiv = document.createElement('div'); memDiv.classList.add('membrane-draggable'); memDiv.setAttribute('id', `vis-${membraneId}`); memDiv.setAttribute('data-membrane-id', membraneId); let colorIdx = membraneNumericId -1; const numericMatch = membraneId.match(/\d+/); if (numericMatch) colorIdx = parseInt(numericMatch[0]) - 1; memDiv.classList.add(`membrane-color-${Math.max(0, colorIdx) % 4}`); memDiv.innerHTML = `<div class="membrane-drag-handle" draggable="true"><div class="flex justify-between items-center"><span class="font-bold text-gray-700">ID: </span><input type="text" value="${membraneId}" class="membrane-id-input ml-2 flex-grow p-1 border-none bg-transparent focus:ring-0" placeholder="Membrane ID"/><button class="remove-membrane-btn text-red-500 hover:text-red-700 text-xs p-1 ml-2">&times;</button></div></div><div class="input-group"><label>Charge:</label><select class="membrane-charge-input charge-select"><option value="0" ${initialCharge === '0' ? 'selected' : ''}>0</option><option value="+" ${initialCharge === '+' ? 'selected' : ''}>+</option><option value="-" ${initialCharge === '-' ? 'selected' : ''}>-</option></select></div><div class="input-group"><label>Initial Objects (e.g., a:2,b):</label><input type="text" class="membrane-objects-input" value="${initialObjectsStr}" placeholder="a:1, b:2"></div><div class="membrane-content"></div>`; const targetContainer = (typeof parentIdContainer === 'string') ? document.getElementById(parentIdContainer) : parentIdContainer; if (targetContainer) { if (targetContainer.classList.contains('editor-area')) targetContainer.appendChild(memDiv); else { const contentArea = targetContainer.querySelector('.membrane-content'); if (contentArea) contentArea.appendChild(memDiv); else targetContainer.appendChild(memDiv); } } else visualEditorArea.appendChild(memDiv); setupDragAndDrop(memDiv.querySelector('.membrane-drag-handle'), memDiv); memDiv.querySelector('.remove-membrane-btn').addEventListener('click', (e) => { e.stopPropagation(); memDiv.remove(); log(`Membrane ${memDiv.dataset.membraneId} removed.`, 'info'); }); memDiv.querySelector('.membrane-id-input').addEventListener('change', (e) => { const oldId = memDiv.dataset.membraneId; const newId = e.target.value.trim(); if (newId && newId !== oldId) { memDiv.setAttribute('data-membrane-id', newId); memDiv.setAttribute('id', `vis-${newId}`); log(`Membrane ID changed: ${oldId} -> ${newId}`, 'info'); } else e.target.value = oldId; }); addDropListeners(memDiv.querySelector('.membrane-content')); return memDiv; }
+        function setupDragAndDrop(handle, container) { handle.addEventListener('dragstart', (e) => { e.stopPropagation(); draggedElementData = container; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', container.id); setTimeout(() => { if(draggedElementData) draggedElementData.style.opacity = '0.5'; }, 0); }); handle.addEventListener('dragend', (e) => { e.stopPropagation(); if(draggedElementData) draggedElementData.style.opacity = '1'; draggedElementData = null; document.querySelectorAll('.drop-target-highlight').forEach(el => el.classList.remove('drop-target-highlight')); }); }
+        function addDropListeners(target) { target.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; if (draggedElementData && target !== draggedElementData && !draggedElementData.contains(target)) target.classList.add('drop-target-highlight'); }); target.addEventListener('dragleave', (e) => { e.stopPropagation(); target.classList.remove('drop-target-highlight'); }); target.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); target.classList.remove('drop-target-highlight'); if (draggedElementData && target !== draggedElementData && !draggedElementData.contains(target)) { target.appendChild(draggedElementData); log(`Membrane ${draggedElementData.dataset.membraneId} dropped into ${target.closest('.membrane-draggable')?.dataset.membraneId || 'main editor'}.`, 'info'); } if (draggedElementData) draggedElementData.style.opacity = '1'; draggedElementData = null; }); }
+        addDropListeners(visualEditorArea);
+        addMembraneButton.addEventListener('click', () => createNewVisualMembrane(visualEditorArea));
+
+
+        // --- Rule Form Management (New) ---
+        addRuleButtonsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('add-rule-type-btn')) {
+                const ruleType = e.target.dataset.ruleType;
+                const templateId = `rule-template-${ruleType}`;
+                const template = document.getElementById(templateId);
+                if (template) {
+                    ruleFormCounter++;
+                    const ruleBlock = template.content.cloneNode(true).firstElementChild;
+                    ruleBlock.dataset.formId = `ruleform_${ruleFormCounter}`; // Unique ID for the form instance
+                    ruleBlock.querySelector('.rule-title').textContent += ` #${ruleFormCounter}`;
+                    
+                    ruleBlock.querySelector('.remove-rule-btn').addEventListener('click', () => {
+                        ruleBlock.remove();
+                        log(`Rule form ${ruleBlock.dataset.formId} removed.`, 'info');
+                    });
+                    rulesListContainer.appendChild(ruleBlock);
+                    log(`Added new ${ruleType} rule form.`, 'info');
+                } else {
+                    log(`Error: Template not found for rule type '${ruleType}' (ID: ${templateId})`, 'error');
+                }
+            }
+        });
+        
+        // --- Parsing Functions ---
+        function parseObjectsFromInput(objectStr) { /* Same as before */ 
+            const objects = new Map(); if (!objectStr || objectStr.trim() === '') return objects;
+            objectStr.split(',').forEach(part => { part = part.trim(); if (!part) return; const [name, countStr] = part.split(':'); const objName = name.trim(); const count = countStr ? parseInt(countStr.trim(), 10) : 1; if (objName && !isNaN(count) && count > 0) objects.set(objName, (objects.get(objName) || 0) + count); }); return objects;
+        }
+        function parseMembraneStructureFromVisual() { /* Same as before */ 
+            log('Parsing membrane structure from visual editor...', 'info'); const membranes = new Map();
+            function processVisualElement(element, parentId = null) { const membraneId = element.dataset.membraneId; const charge = element.querySelector('.membrane-charge-input').value; const objectsStr = element.querySelector('.membrane-objects-input').value; const objects = parseObjectsFromInput(objectsStr); if (membranes.has(membraneId)) { log(`Warning: Duplicate membrane ID '${membraneId}'.`, 'warn'); return; } const membraneData = { id: membraneId, label: membraneId, charge: charge, objects: objects, parentId: parentId, childrenIds: [] }; membranes.set(membraneId, membraneData); if (parentId && membranes.has(parentId)) membranes.get(parentId).childrenIds.push(membraneId); const contentArea = element.querySelector('.membrane-content'); if (contentArea) Array.from(contentArea.children).filter(c => c.classList.contains('membrane-draggable')).forEach(childEl => processVisualElement(childEl, membraneId)); }
+            Array.from(visualEditorArea.children).filter(c => c.classList.contains('membrane-draggable')).forEach(rootEl => processVisualElement(rootEl, null));
+            if (membranes.size === 0) log("No membranes in visual editor.", "warn"); else log(`Parsed ${membranes.size} membranes visually.`, "info"); return membranes;
+        }
+        function parseInnerMembraneString(str) { /* Same as before */ 
+             const innerMems = []; if (!str || str.trim() === '') return innerMems; str.split(',').forEach(part => { const [label, charge] = part.trim().split(':'); if (label && charge && ['+','-','0'].includes(charge.trim())) innerMems.push({ label: label.trim(), charge: charge.trim() }); else if (label) { innerMems.push({ label: label.trim(), charge: '0' }); log(`Assuming charge '0' for inner membrane '${label.trim()}' in division rule.`, 'warn');} }); return innerMems;
+        }
+
+        function parseRulesFromVisualForms() {
+            log('Parsing rules from visual forms...', 'info');
+            const parsedRules = [];
+            let internalRuleIdCounter = 0;
+
+            rulesListContainer.querySelectorAll('.rule-block').forEach(block => {
+                internalRuleIdCounter++;
+                const ruleType = block.dataset.ruleType; // Get type from data attribute
+                if (!ruleType) {
+                    log(`Skipping rule form ${block.dataset.formId} as type is missing.`, 'warn');
+                    return;
+                }
+
+                const rule = {
+                    id: `parsed_rule_${internalRuleIdCounter}`,
+                    formId: block.dataset.formId,
+                    type: ruleType, // Store the actual P-System type (a,b,c,d,e,f)
+                    conditions: {},
+                    actions: {},
+                    involvedMembranes: new Set(),
+                    consumingObjects: new Map(),
+                    raw: `Form: ${ruleType} - ${block.querySelector('.rule-title').textContent}`
+                };
+                
+                rule.conditions.membraneLabel = block.querySelector('.main-mem-label')?.value.trim();
+                rule.conditions.charge = block.querySelector('.main-mem-charge')?.value;
+                if (rule.conditions.membraneLabel) rule.involvedMembranes.add(rule.conditions.membraneLabel);
+
+                const consumingObjEl = block.querySelector('.consuming-obj'); // Common for a,c,d,e
+                if (consumingObjEl && consumingObjEl.value.trim()) {
+                     rule.consumingObjects = parseObjectsFromInput(consumingObjEl.value.trim());
+                }
+
+                switch (ruleType) {
+                    case 'evolution': // Type 'a'
+                        rule.type = 'a';
+                        rule.actions.products = parseObjectsFromInput(block.querySelector('.evo-products').value.trim());
+                        const evoFinalCharge = block.querySelector('.evo-final-charge').value;
+                        if (evoFinalCharge) rule.actions.newCharge = evoFinalCharge;
+                        break;
+                    case 'send_in': // Type 'b'
+                        rule.type = 'b';
+                        rule.conditions.objectOutside = block.querySelector('.sendin-obj-parent').value.trim();
+                        // For type 'b', consumingObjects are the objectOutside from parent
+                        if (rule.conditions.objectOutside) rule.consumingObjects.set(rule.conditions.objectOutside, 1); 
+                        rule.actions.productObject = block.querySelector('.sendin-obj-main').value.trim();
+                        rule.actions.productTarget = 'here';
+                        rule.actions.newCharge = block.querySelector('.sendin-final-charge').value;
+                        break;
+                    case 'send_out': // Type 'c'
+                        rule.type = 'c';
+                        // Consuming object already parsed if .consuming-obj exists
+                        rule.actions.productObject = block.querySelector('.sendout-obj-parent').value.trim();
+                        rule.actions.productTarget = 'out';
+                        rule.actions.newCharge = block.querySelector('.sendout-final-charge').value;
+                        break;
+                    case 'dissolution': // Type 'd'
+                        rule.type = 'd';
+                        // Trigger object already parsed if .consuming-obj exists
+                        rule.actions.dissolves = true;
+                        const released = block.querySelector('.diss-released-objs').value.trim();
+                        rule.actions.productsToParent = (released.toLowerCase() === 'lambda' || released === '') ? new Map() : parseObjectsFromInput(released);
+                        break;
+                    case 'elem_division': // Type 'e'
+                        rule.type = 'e';
+                        // Trigger object already parsed if .consuming-obj exists
+                        rule.actions.division = true;
+                        rule.actions.newMembranes = [
+                            { label: block.querySelector('.ediv-r1-label').value.trim() || rule.conditions.membraneLabel, charge: block.querySelector('.ediv-r1-charge').value, objects: parseObjectsFromInput(block.querySelector('.ediv-r1-obj').value.trim()) },
+                            { label: block.querySelector('.ediv-r2-label').value.trim() || rule.conditions.membraneLabel, charge: block.querySelector('.ediv-r2-charge').value, objects: parseObjectsFromInput(block.querySelector('.ediv-r2-obj').value.trim()) }
+                        ];
+                        break;
+                    case 'non_elem_division': // Type 'f'
+                        rule.type = 'f';
+                        rule.conditions.outerMembrane = rule.conditions.membraneLabel;
+                        rule.conditions.outerCharge = rule.conditions.charge;
+                        rule.conditions.lhsInnerMems = parseInnerMembraneString(block.querySelector('.fdiv-lhs-inner').value.trim());
+                        rule.conditions.lhsInnerMems.forEach(im => rule.involvedMembranes.add(im.label));
+                        
+                        rule.actions.division = true;
+                        rule.actions.newStructures = [
+                            { outerLabel: block.querySelector('.fdiv-r1-outer-label').value.trim() || rule.conditions.outerMembrane, outerCharge: block.querySelector('.fdiv-r1-outer-charge').value, innerMems: parseInnerMembraneString(block.querySelector('.fdiv-r1-inner').value.trim()) },
+                            { outerLabel: block.querySelector('.fdiv-r2-outer-label').value.trim() || rule.conditions.outerMembrane, outerCharge: block.querySelector('.fdiv-r2-outer-charge').value, innerMems: parseInnerMembraneString(block.querySelector('.fdiv-r2-inner').value.trim()) }
+                        ];
+                        break;
+                    default:
+                        log(`Unknown rule type '${ruleType}' during parsing for form ${block.dataset.formId}. Skipping.`, 'warn');
+                        return; 
+                }
+                parsedRules.push(rule);
+            });
+            if (parsedRules.length === 0 && rulesListContainer.children.length > 0) log("No valid rules parsed from forms.", "warn");
+            return parsedRules;
+        }
+        
+        // --- Core Logic: Finding Maximally Parallel Sets (isRuleApplicable and checkCompatibility need careful review for new rule structure) ---
+        function isRuleApplicable(rule, pSystemState) { /* Same as previous version, uses rule.type 'a', 'b' etc. */ 
+            let mainMembraneId;
+            if (rule.type === 'f') mainMembraneId = rule.conditions.outerMembrane;
+            else mainMembraneId = rule.conditions.membraneLabel;
+
+            if (!mainMembraneId) { log(`Rule ${rule.id} (${rule.formId}) missing main membrane label.`, 'warn'); return false; }
+            const targetMembrane = pSystemState.membranes.get(mainMembraneId);
+            if (!targetMembrane || targetMembrane.dissolved) return false;
+
+            const expectedCharge = (rule.type === 'f') ? rule.conditions.outerCharge : rule.conditions.charge;
+            if (targetMembrane.charge !== expectedCharge) return false;
+
+            if (rule.consumingObjects && rule.consumingObjects.size > 0) {
+                for (const [obj, count] of rule.consumingObjects) {
+                    let sourceObjects;
+                    if (rule.type === 'b') { 
+                        if (!targetMembrane.parentId) return false;
+                        const parentMem = pSystemState.membranes.get(targetMembrane.parentId);
+                        if (!parentMem || parentMem.dissolved) return false;
+                        sourceObjects = parentMem.objects;
+                    } else {
+                        sourceObjects = targetMembrane.objects;
+                    }
+                    if ((sourceObjects.get(obj) || 0) < count) return false;
+                }
+            }
+             if (rule.type === 'f') {
+                if (!rule.conditions.lhsInnerMems || rule.conditions.lhsInnerMems.length === 0) { log(`Rule ${rule.id} (type f) missing LHS inner membrane conditions.`, 'warn'); return false;}
+                for (const inner of rule.conditions.lhsInnerMems) {
+                    const innerMem = pSystemState.membranes.get(inner.label);
+                    if (!innerMem || innerMem.dissolved || innerMem.charge !== inner.charge || innerMem.parentId !== mainMembraneId) return false;
+                }
+                for (const [id, mem] of pSystemState.membranes) {
+                    if (mem.parentId === mainMembraneId && !rule.conditions.lhsInnerMems.find(im => im.label === id)) {
+                        if (mem.charge !== '0') return false; 
+                    }
+                }
+            }
+            return true;
+        }
+        
+        function checkCompatibility(ruleSet, pSystemState) { /* Same as previous version, uses rule.type 'a', 'b' etc. */
+            if (ruleSet.length === 0) return true;
+            const tempObjects = new Map(); 
+            pSystemState.membranes.forEach(mem => { tempObjects.set(mem.id, new Map(mem.objects)); });
+
+            const membranesUsedByBCDEF = new Set(); // For rules b, c, d, e, f (outer for f)
+            const membranesInvolvedInFInner = new Set(); // Inner membranes specifically for f-type rules
+
+            for (const rule of ruleSet) {
+                let mainMembraneId = (rule.type === 'f') ? rule.conditions.outerMembrane : rule.conditions.membraneLabel;
+                const targetMembraneOriginal = pSystemState.membranes.get(mainMembraneId);
+                if (!targetMembraneOriginal) return false; 
+
+                const expectedCharge = (rule.type === 'f') ? rule.conditions.outerCharge : rule.conditions.charge;
+                if (targetMembraneOriginal.charge !== expectedCharge) return false;
+
+                if (rule.consumingObjects && rule.consumingObjects.size > 0) {
+                    for (const [obj, countNeeded] of rule.consumingObjects) {
+                        let sourceMemIdToConsumeFrom = (rule.type === 'b') ? targetMembraneOriginal.parentId : mainMembraneId;
+                        if (rule.type === 'b' && !sourceMemIdToConsumeFrom) return false; 
+                        
+                        const objectMapOfSource = tempObjects.get(sourceMemIdToConsumeFrom);
+                        if (!objectMapOfSource) return false;
+                        const availableCount = objectMapOfSource.get(obj) || 0;
+                        if (availableCount < countNeeded) return false;
+                        objectMapOfSource.set(obj, availableCount - countNeeded);
+                    }
+                }
+
+                const membraneRuleCategories = ['b', 'c', 'd', 'e', 'f'];
+                if (membraneRuleCategories.includes(rule.type)) {
+                    if (membranesUsedByBCDEF.has(mainMembraneId)) return false; // Used by another b-f rule (outer)
+                     if (membranesInvolvedInFInner.has(mainMembraneId)) return false; // Main mem cannot be an inner mem of another f-rule
+                    membranesUsedByBCDEF.add(mainMembraneId);
+
+                    if (rule.type === 'f') {
+                        for (const inner of rule.conditions.lhsInnerMems) {
+                            if (membranesUsedByBCDEF.has(inner.label) || membranesInvolvedInFInner.has(inner.label)) return false; // Inner mem also cannot be used by other b-f or as inner of another f
+                            membranesInvolvedInFInner.add(inner.label);
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        function findMaximallyParallelSets(pSystemState, allRules) { /* Same logic */ 
+            log('Finding maximally parallel sets...', 'info');
+            const individuallyApplicableRules = allRules.filter(rule => isRuleApplicable(rule, pSystemState));
+            log(`Found ${individuallyApplicableRules.length} individually applicable rules.`, 'info');
+            individuallyApplicableRules.forEach(r => log(`  Applicable: ${r.id} (${r.formId}) - Type ${r.type} - Raw: ${r.raw}`));
+
+            if (individuallyApplicableRules.length === 0) return [];
+            const solutions = [];
+            function findSetsRecursive(startIndex, currentSet) {
+                let isMaximalLocally = true;
+                for (let i = startIndex; i < individuallyApplicableRules.length; i++) {
+                    const potentialRule = individuallyApplicableRules[i];
+                    if (currentSet.find(r => r.id === potentialRule.id)) continue;
+                    if (checkCompatibility([...currentSet, potentialRule], pSystemState)) {
+                        isMaximalLocally = false; 
+                        currentSet.push(potentialRule);
+                        findSetsRecursive(i + 1, currentSet);
+                        currentSet.pop(); 
+                    }
+                }
+                if (isMaximalLocally && currentSet.length > 0) {
+                    solutions.push([...currentSet].sort((a,b) => a.id.localeCompare(b.id)));
+                }
+            }
+            findSetsRecursive(0, []);
+            const uniqueMaximalSets = [];
+            if (solutions.length > 0) {
+                 solutions.sort((a,b) => b.length - a.length); 
+                solutions.forEach(sol => {
+                    let isSubsetOfExisting = false;
+                    for (const existingSet of uniqueMaximalSets) {
+                        if (sol.every(item => existingSet.find(exItem => exItem.id === item.id)) && sol.length < existingSet.length) { isSubsetOfExisting = true; break; }
+                    }
+                    if (!isSubsetOfExisting) {
+                        const solSignature = sol.map(r => r.id).sort().join(','); // Use internal ID for signature
+                        if (!uniqueMaximalSets.find(s => s.map(r => r.id).sort().join(',') === solSignature)) uniqueMaximalSets.push(sol);
+                    }
+                });
+            }
+            log(`Found ${uniqueMaximalSets.length} distinct maximally parallel set(s).`, 'info');
+            return uniqueMaximalSets;
+        }
+
+
+        // --- Event Listener for Analysis ---
+        analyzeBtnEl.addEventListener('click', () => {
+            clearError(); resultsDisplayEl.innerHTML = '<p class="text-gray-500">Analyzing...</p>'; log('--- Analysis Started ---', 'info');
+            const membranes = parseMembraneStructureFromVisual();
+            if (!membranes || membranes.size === 0) { displayError("Failed to parse membranes. Ensure membranes are defined."); resultsDisplayEl.innerHTML = '<p class="text-red-500">Error parsing membranes.</p>'; return; }
+            const rulesArray = parseRulesFromVisualForms(); 
+            const pSystemState = { membranes, rules: rulesArray }; 
+            const maximalSets = findMaximallyParallelSets(pSystemState, rulesArray);
+            if (maximalSets.length > 0) {
+                resultsDisplayEl.innerHTML = ''; 
+                maximalSets.forEach((set, index) => {
+                    const setDiv = document.createElement('div'); setDiv.classList.add('result-item');
+                    let rulesHtml = set.map(rule => `<span class="rule-tag" title="${rule.raw.replace(/"/g, '&quot;')}">${rule.formId || rule.id} (Type ${rule.type})</span>`).join(' ');
+                    setDiv.innerHTML = `<h3 class="font-semibold text-gray-700">Set ${index + 1}:</h3><div class="mt-1">${rulesHtml || '<em>Empty Set</em>'}</div>`;
+                    resultsDisplayEl.appendChild(setDiv);
+                });
+            } else resultsDisplayEl.innerHTML = '<p class="text-gray-600">No maximally parallel sets found.</p>';
+            log('--- Analysis Complete ---', 'info');
+        });
+
+        // --- Initial Setup ---
+        function addAndFillRuleForm(ruleData) {
+            const addBtn = document.querySelector(`.add-rule-type-btn[data-rule-type="${ruleData.type}"]`);
+            if (addBtn) {
+                addBtn.click(); // Simulate click to add the correct form
+                const newBlock = rulesListContainer.lastElementChild;
+                if (!newBlock) {
+                    log(`Error: Failed to add rule block for type ${ruleData.type}`, "error");
+                    return;
+                }
+
+                newBlock.querySelector('.main-mem-label').value = ruleData.mainMem;
+                newBlock.querySelector('.main-mem-charge').value = ruleData.mainCharge;
+                
+                const consumingObjEl = newBlock.querySelector('.consuming-obj');
+                if (consumingObjEl && ruleData.consume) consumingObjEl.value = ruleData.consume;
+
+                switch (ruleData.type) {
+                    case 'evolution':
+                        newBlock.querySelector('.evo-products').value = ruleData.products || '';
+                        if(ruleData.finalCharge) newBlock.querySelector('.evo-final-charge').value = ruleData.finalCharge;
+                        break;
+                    case 'send_in':
+                        newBlock.querySelector('.sendin-obj-parent').value = ruleData.objParent || '';
+                        newBlock.querySelector('.sendin-obj-main').value = ruleData.productsMain || '';
+                        newBlock.querySelector('.sendin-final-charge').value = ruleData.finalCharge || '0';
+                        break;
+                    case 'send_out':
+                        newBlock.querySelector('.sendout-obj-parent').value = ruleData.productsParent || '';
+                        newBlock.querySelector('.sendout-final-charge').value = ruleData.finalCharge || '0';
+                        break;
+                    case 'dissolution':
+                         if(newBlock.querySelector('.diss-released-objs')) newBlock.querySelector('.diss-released-objs').value = ruleData.released || '';
+                        break;
+                    case 'elem_division':
+                        newBlock.querySelector('.ediv-r1-label').value = ruleData.r1Label || '';
+                        newBlock.querySelector('.ediv-r1-charge').value = ruleData.r1Charge || '0';
+                        newBlock.querySelector('.ediv-r1-obj').value = ruleData.r1Obj || '';
+                        newBlock.querySelector('.ediv-r2-label').value = ruleData.r2Label || '';
+                        newBlock.querySelector('.ediv-r2-charge').value = ruleData.r2Charge || '0';
+                        newBlock.querySelector('.ediv-r2-obj').value = ruleData.r2Obj || '';
+                        break;
+                    case 'non_elem_division':
+                        newBlock.querySelector('.fdiv-lhs-inner').value = ruleData.lhsInner || '';
+                        newBlock.querySelector('.fdiv-r1-outer-label').value = ruleData.r1OuterL || '';
+                        newBlock.querySelector('.fdiv-r1-outer-charge').value = ruleData.r1OuterC || '0';
+                        newBlock.querySelector('.fdiv-r1-inner').value = ruleData.r1Inner || '';
+                        newBlock.querySelector('.fdiv-r2-outer-label').value = ruleData.r2OuterL || '';
+                        newBlock.querySelector('.fdiv-r2-outer-charge').value = ruleData.r2OuterC || '0';
+                        newBlock.querySelector('.fdiv-r2-inner').value = ruleData.r2Inner || '';
+                        break;
+                }
+            } else {
+                log(`Error: Could not find 'Add' button for rule type ${ruleData.type}`, 'error');
+            }
+        }
+
+
+        function loadExampleFromScreenshotVisual() {
+            visualEditorArea.innerHTML = ''; rulesListContainer.innerHTML = ''; 
+            nextMembraneNumericId = 1; ruleFormCounter = 0;
+
+            const mem7 = createNewVisualMembrane(visualEditorArea, '7', '+', 'a:1, d:1');
+            const mem4 = createNewVisualMembrane(mem7, '4', '+', 'a:1, b:1');
+            const mem5 = createNewVisualMembrane(mem7, '5', '-', 'b:1,c:2,d:1');
+            createNewVisualMembrane(mem4, '2', '+', 'c:1');
+            createNewVisualMembrane(mem4, '3', '-', 'a:1,b:1,c:1');
+            createNewVisualMembrane(mem4, '6', '-', 'a:1,d:1');
+            createNewVisualMembrane(mem5, '1', '0', 'a:2,b:1,c:1');
+            
+            const maxIdNum = ['1','2','3','4','5','6','7'].map(id => parseInt(id.match(/\d+/)?.[0] || '0')).reduce((max, curr) => Math.max(max, curr), 0);
+            nextMembraneNumericId = maxIdNum + 1;
+
+            const exampleRulesData = [
+                { type: 'evolution', mainMem: '2', mainCharge: '+', consume: 'c', products: 'd' }, // Rule i
+                // Rule ii (expanded)
+                ...[1,2,3,4,5,6,7].map(i => ({ type: 'send_out', mainMem: String(i), mainCharge: '+', consume: 'a', productsParent: 'b', finalCharge: '-' })),
+                // Rule iii (expanded)
+                ...[1,2,3,4,5,6].map(i => ({ type: 'send_in', mainMem: String(i), mainCharge: '-', objParent: 'a', productsMain: 'b', finalCharge: '+' })),
+                // Rule iv
+                { type: 'non_elem_division', mainMem: '4', mainCharge: '+', lhsInner: '2:+, 3:-', 
+                  r1OuterL: '4', r1OuterC: '0', r1Inner: '2:-', 
+                  r2OuterL: '4', r2OuterC: '0', r2Inner: '3:+' },
+                // Rule v
+                { type: 'non_elem_division', mainMem: '4', mainCharge: '+', lhsInner: '2:+, 3:-, 6:-',
+                  r1OuterL: '4', r1OuterC: '0', r1Inner: '2:0, 3:+',
+                  r2OuterL: '4', r2OuterC: '0', r2Inner: '6:-' },
+                // Rule vi
+                { type: 'non_elem_division', mainMem: '7', mainCharge: '+', lhsInner: '4:+, 5:-',
+                  r1OuterL: '7', r1OuterC: '0', r1Inner: '4:-',
+                  r2OuterL: '7', r2OuterC: '0', r2Inner: '5:+' }
+            ];
+            exampleRulesData.forEach(addAndFillRuleForm);
+            log("Screenshot example visually loaded with specific rule forms.", "info");
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Application initialized.');
+            loadExampleFromScreenshotVisual(); 
+        });
+    </script>
+</body>
+</html>
