@@ -9,73 +9,22 @@
     <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('pm-theme')||'dark');})();</script>
     <style>
         body { font-family: 'IBM Plex Mono', monospace; }
-        .editor-area {
-            border: 2px dashed #cbd5e1; /* gray-300 */
-            min-height: 400px;
-            padding: 10px;
-            border-radius: 8px;
-            position: relative;
-            background-color: #f9fafb; /* gray-50 */
-        }
-        .membrane-draggable {
-            border: 2px solid;
-            padding: 12px;
-            margin: 8px;
-            border-radius: 8px;
-            background-color: #fff;
-            min-width: 200px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .membrane-drag-handle {
-            cursor: grab;
-            padding: 4px 0;
-        }
-        .membrane-drag-handle:active {
-            cursor: grabbing;
-        }
-        .membrane-draggable:active {
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        /* Color scheme for membranes */
-        .membrane-skin-bg { border-color: #3b82f6; background-color: #eff6ff; } /* blue-500, blue-50 (Used for skin membrane '3') */
-        .membrane-color-0 { border-color: #10b981; background-color: #f0fdf4; } /* emerald-500, emerald-50 (Used for membrane '1') */
-        .membrane-color-1 { border-color: #f97316; background-color: #fff7ed; } /* orange-500, orange-50 (Used for membrane '2') */
-        .membrane-color-2 { border-color: #8b5cf6; background-color: #f5f3ff; } /* violet-500, violet-50 */
-        .membrane-color-3 { border-color: #ec4899; background-color: #fdf2f8; } /* pink-500, pink-50 */
-        .membrane-default-bg { border-color: #6b7280; background-color: #f3f4f6; } /* gray-500, gray-100 */
 
-        .membrane-content {
-            min-height: 50px;
-            padding: 8px;
-            border-radius: 4px;
-        }
-        .membrane-draggable input[type="text"], .membrane-draggable textarea {
+        /* Membrane editor — inputs inside draggable cards */
+        .membrane-draggable input[type="text"],
+        .membrane-draggable textarea {
             width: 100%;
             padding: 6px;
             margin-top: 4px;
             margin-bottom: 8px;
-            border: 1px solid #d1d5db; /* gray-300 */
+            border: 1px solid #d1d5db;
             border-radius: 4px;
             font-size: 0.9em;
         }
         .membrane-draggable label {
             font-size: 0.8em;
             font-weight: 500;
-            color: #4b5563; /* gray-600 */
-        }
-        .object-tag {
-            background-color: #e5e7eb; /* gray-200 */
-            color: #1f2937; /* gray-800 */
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            margin-right: 4px;
-            margin-bottom: 4px;
-            display: inline-block;
-        }
-        .drop-target-highlight {
-            background-color: #bfdbfe !important; /* blue-200 */
-            outline: 2px dashed #3b82f6; /* blue-500 */
+            color: #4b5563;
         }
 
         /* Responsive adjustments */
@@ -86,7 +35,8 @@
             .main-layout {
                 flex-direction: column;
             }
-            #psystem-editor-container, #simulation-display-container {
+            #psystem-editor-container,
+            #simulation-display-container {
                 width: 100%;
             }
         }

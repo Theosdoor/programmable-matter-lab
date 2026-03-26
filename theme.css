@@ -332,3 +332,89 @@ button {
 /* Error messages stay red */
 .error-message { color: #ff6b6b !important; }
 [data-theme="light"] .error-message { color: var(--accent-t) !important; }
+
+/* ----------------------------------------------------------------
+   MEMBRANE EDITOR — SHARED STRUCTURE
+   Layout/structural styles shared by active-membranes.html and
+   p-systems.html. Colour overrides above keep these theme-aware.
+---------------------------------------------------------------- */
+.editor-area {
+  border: 2px dashed;
+  padding: 10px;
+  border-radius: 8px;
+  position: relative;
+  overflow-y: auto;
+}
+
+.membrane-draggable {
+  border: 2px solid;
+  padding: 12px;
+  margin: 8px;
+  border-radius: 8px;
+  min-width: 200px;
+}
+
+.membrane-drag-handle {
+  cursor: grab;
+  padding: 8px 12px;
+  border-bottom: 1px solid;
+  margin: -12px -12px 8px -12px;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+.membrane-drag-handle:active  { cursor: grabbing; }
+.membrane-draggable:active    { box-shadow: 0 5px 15px rgba(0,0,0,0.25); }
+
+/* Membrane identity colours — light-mode defaults
+   (dark-mode overrides already defined above) */
+.membrane-skin-bg    { border-color: #3b82f6; background-color: #eff6ff; }
+.membrane-color-0    { border-color: #10b981; background-color: #f0fdf4; }
+.membrane-color-1    { border-color: #f97316; background-color: #fff7ed; }
+.membrane-color-2    { border-color: #8b5cf6; background-color: #f5f3ff; }
+.membrane-color-3    { border-color: #ec4899; background-color: #fdf2f8; }
+.membrane-default-bg { border-color: #6b7280; background-color: #f3f4f6; }
+
+.membrane-content {
+  min-height: 50px;
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 8px;
+  border: 1px dashed;
+}
+
+.drop-target-highlight { outline: 2px dashed; }
+
+/* ----------------------------------------------------------------
+   LOG ENTRIES — shared between tool pages
+---------------------------------------------------------------- */
+.log-entry {
+  font-size: 0.8rem;
+  padding: 0.1rem 0;
+  border-bottom: 1px dashed var(--border);
+}
+.log-entry:last-child { border-bottom: none; }
+
+/* ----------------------------------------------------------------
+   MOBILE
+---------------------------------------------------------------- */
+@media (max-width: 768px) {
+  /* Prevent iOS auto-zoom on input focus (requires >= 16px) */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* Minimum 44px touch target for all buttons */
+  button {
+    min-height: 44px;
+  }
+
+  /* Allow membranes to go full-width on small screens */
+  .membrane-draggable {
+    min-width: 0;
+    width: calc(100% - 16px);
+  }
+}

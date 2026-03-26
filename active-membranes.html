@@ -9,47 +9,33 @@
     <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('pm-theme')||'dark');})();</script>
     <style>
         body { font-family: 'IBM Plex Mono', monospace; background-color: var(--bg); }
+
+        /* Page-specific label / result / rule styles */
         .psystem-input-label { font-weight: 600; color: #374151; margin-bottom: 0.25rem; display: block; }
         .result-item { background-color: #f9fafb; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; margin-bottom: 0.5rem; }
         .rule-tag { background-color: #e0e7ff; color: #4338ca; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.8em; margin-right: 0.25rem; margin-bottom: 0.25rem; display: inline-block; font-family: monospace; }
-        .error-message { color: #ef4444; font-weight: 500; }
-        .log-entry { font-size: 0.8rem; padding: 0.1rem 0; border-bottom: 1px dashed #eee; }
-        .log-entry:last-child { border-bottom: none; }
 
-        .editor-area { border: 2px dashed #cbd5e1; min-height: 300px; padding: 10px; border-radius: 8px; position: relative; background-color: #f9fafb; overflow-y: auto; }
-        .membrane-draggable { border: 2px solid; padding: 12px; margin: 8px; border-radius: 8px; background-color: #fff; min-width: 220px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .membrane-drag-handle { cursor: grab; padding: 4px 0; background-color: rgba(0,0,0,0.03); border-bottom: 1px solid #eee; margin: -12px -12px 8px -12px; padding: 8px 12px; border-top-left-radius: 6px; border-top-right-radius: 6px; }
-        .membrane-drag-handle:active { cursor: grabbing; }
-        .membrane-draggable:active { box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-
-        .membrane-skin-bg { border-color: #3b82f6; background-color: #eff6ff; }
-        .membrane-color-0 { border-color: #10b981; background-color: #f0fdf4; }
-        .membrane-color-1 { border-color: #f97316; background-color: #fff7ed; }
-        .membrane-color-2 { border-color: #8b5cf6; background-color: #f5f3ff; }
-        .membrane-color-3 { border-color: #ec4899; background-color: #fdf2f8; }
-        .membrane-default-bg { border-color: #6b7280; background-color: #f3f4f6; }
-
-        .membrane-content { min-height: 50px; padding: 8px; border-radius: 4px; margin-top: 8px; border: 1px dashed #d1d5db; background-color: rgba(255,255,255,0.5); }
-        .membrane-draggable input[type="text"], .membrane-draggable select { width: 100%; padding: 6px; margin-top: 4px; margin-bottom: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9em; }
+        /* Membrane editor — inputs inside draggable cards */
+        .membrane-draggable input[type="text"],
+        .membrane-draggable select { width: 100%; padding: 6px; margin-top: 4px; margin-bottom: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9em; }
         .membrane-draggable .input-group { margin-bottom: 8px; }
         .membrane-draggable label { font-size: 0.8em; font-weight: 500; color: #4b5563; display: block; margin-bottom: 2px; }
-        .drop-target-highlight { background-color: #bfdbfe !important; outline: 2px dashed #3b82f6; }
         .charge-select { font-family: monospace; }
 
+        /* Rule blocks */
         .rule-block { background-color: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .rule-block h4 { font-size: 1.0rem; font-weight: 600; color: #1f2937; margin-bottom: 0.75rem; }
         .rule-input-group { margin-bottom: 0.75rem; }
         .rule-input-group label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
-        .rule-input-group input[type="text"], .rule-input-group select, .rule-input-group textarea {
-            width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem; font-size: 0.875rem;
-            background-color: #f9fafb;
-        }
-        .rule-input-group textarea { min-height: 40px; font-family: monospace;}
+        .rule-input-group input[type="text"],
+        .rule-input-group select,
+        .rule-input-group textarea { width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem; font-size: 0.875rem; background-color: #f9fafb; }
+        .rule-input-group textarea { min-height: 40px; font-family: monospace; }
         .remove-rule-btn { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
         .remove-rule-btn:hover { background-color: #fca5a5; color: #991b1b; }
-        .add-rule-type-btn { background-color: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; margin-right: 0.5rem; margin-bottom:0.5rem; }
+        .add-rule-type-btn { background-color: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; margin-right: 0.5rem; margin-bottom: 0.5rem; }
         .add-rule-type-btn:hover { background-color: #c7d2fe; }
-        .rule-block .field-note { font-size: 0.75rem; color: #6b7280; margin-top: -0.5rem; margin-bottom: 0.5rem;}
+        .rule-block .field-note { font-size: 0.75rem; color: #6b7280; margin-top: -0.5rem; margin-bottom: 0.5rem; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -65,7 +51,7 @@
                     <label class="psystem-input-label">Membrane Structure & Initial State (Visual):</label>
                     <button id="add-membrane-btn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-md text-sm shadow">Add Membrane</button>
                 </div>
-                <div id="visual-editor-area" class="editor-area h-96"></div>
+                <div id="visual-editor-area" class="editor-area min-h-48 md:h-96"></div>
             </div>
             <div>
                 <label class="psystem-input-label">Rules Definition:</label>
@@ -77,7 +63,7 @@
                     <button data-rule-type="elem_division" class="add-rule-type-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Add Elem. Div (e)</button>
                     <button data-rule-type="non_elem_division" class="add-rule-type-btn text-sm font-semibold py-1 px-2 rounded-md shadow-sm">Add Non-Elem. Div (f)</button>
                 </div>
-                <div id="rules-list-container" class="space-y-4 h-[calc(24rem-2.5rem)] overflow-y-auto p-1 bg-gray-50 border rounded-md">
+                <div id="rules-list-container" class="space-y-4 min-h-48 md:h-[calc(24rem-2.5rem)] overflow-y-auto p-1 bg-gray-50 border rounded-md">
                     </div>
             </div>
         </div>
