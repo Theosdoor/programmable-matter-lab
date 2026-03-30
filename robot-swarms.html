@@ -6,7 +6,7 @@
     <title>Robot Swarm Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="theme.css">
-    <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('pm-theme')||'dark');})();</script>
+    <script src="theme-init.js"></script>
     <style>
         body {
             font-family: 'IBM Plex Mono', monospace;
@@ -195,7 +195,21 @@
         let gridState = [];
         let initialGridStateForShare = null; 
         let targetGridState = null;
-        let mode = 'SETUP_INITIAL';
+        const SwarmMode = {
+            _current: 'SETUP_INITIAL',
+            get current() { return this._current; },
+            is(s) { return this._current === s; },
+            isTransforming() { return this._current.startsWith('TRANSFORM_'); },
+            startTargetSetup()      { this._current = 'TARGET_SETUP'; },
+            finishTargetSetup()     { this._current = 'SETUP_INITIAL'; },
+            beginTransform()        { this._current = 'TRANSFORM_SELECT_ROTATING'; },
+            exitTransform()         { this._current = 'SETUP_INITIAL'; },
+            backToSelectRotating()  { this._current = 'TRANSFORM_SELECT_ROTATING'; },
+            selectRotatingNode()    { this._current = 'TRANSFORM_SELECT_PIVOT'; },
+            selectPivot()           { this._current = 'TRANSFORM_SELECT_DESTINATION'; },
+            deselectPivot()         { this._current = 'TRANSFORM_SELECT_PIVOT'; },
+            force(s)                { this._current = s; },
+        };
         let selectedRotatingNode = null;
         let selectedPivotNode = null;
         let potentialPivots = [];
@@ -287,11 +301,11 @@
             gridSize = size; 
             messageBox.className = 'info-box mt-2 p-3 bg-blue-100 border border-blue-300 text-blue-700 rounded-md text-sm'; 
 
-            if (!isContinuation || mode === 'SETUP_INITIAL') { 
+            if (!isContinuation || SwarmMode.is('SETUP_INITIAL')) { 
                 gridState = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null));
                 initialGridStateForShare = JSON.parse(JSON.stringify(gridState)); 
             }
-            if (mode === 'TARGET_SETUP' && !targetGridState) {
+            if (SwarmMode.is('TARGET_SETUP') && !targetGridState) {
                 targetGridState = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null));
             }
             
@@ -300,7 +314,7 @@
             updateRotationSequence();
             renderGrid();
             updateButtonStates();
-            if (mode === 'SETUP_INITIAL')  messageBox.textContent = `Click cells to place nodes for the initial shape. Bottom-left is (0,0), top-right is (${gridSize-1},${gridSize-1}).`;
+            if (SwarmMode.is('SETUP_INITIAL'))  messageBox.textContent = `Click cells to place nodes for the initial shape. Bottom-left is (0,0), top-right is (${gridSize-1},${gridSize-1}).`;
         }
         
         // --- Rendering ---
@@ -318,7 +332,7 @@
                         cellElement.classList.add('grid-cell-center');
                     }
 
-                    if (mode === 'TARGET_SETUP') {
+                    if (SwarmMode.is('TARGET_SETUP')) {
                         if (targetGridState && targetGridState[r_render][c_render]) {
                             const nodeDiv = document.createElement('div');
                             nodeDiv.classList.add('node', targetGridState[r_render][c_render].color === 'red' ? 'node-red' : 'node-black');
@@ -339,9 +353,9 @@
                         }
                     }
 
-                    if (mode.startsWith('TRANSFORM_')) {
+                    if (SwarmMode.isTransforming()) {
                         if (selectedRotatingNode && selectedRotatingNode.r === r_render && selectedRotatingNode.c === c_render) cellElement.classList.add('highlight-rotating');
-                        if (mode === 'TRANSFORM_SELECT_PIVOT' && potentialPivots.some(p => p.r === r_render && p.c === c_render)) cellElement.classList.add('highlight-potential-pivot');
+                        if (SwarmMode.is('TRANSFORM_SELECT_PIVOT') && potentialPivots.some(p => p.r === r_render && p.c === c_render)) cellElement.classList.add('highlight-potential-pivot');
                         if (selectedPivotNode && selectedPivotNode.r === r_render && selectedPivotNode.c === c_render) cellElement.classList.add('highlight-pivot');
                         
                         potentialDestinations.forEach(dest => {
@@ -402,15 +416,15 @@
             const hasInitialNodes = gridState.flat().some(cell => cell !== null);
             const hasTargetNodes = targetGridState && targetGridState.flat().some(cell => cell !== null);
 
-            startTransformBtn.textContent = mode.startsWith('TRANSFORM_') ? 'Return to Setup' : 'Start Transformation';
-            startTransformBtn.disabled = mode === 'TARGET_SETUP' || (!hasInitialNodes && !mode.startsWith('TRANSFORM_'));
+            startTransformBtn.textContent = SwarmMode.isTransforming() ? 'Return to Setup' : 'Start Transformation';
+            startTransformBtn.disabled = SwarmMode.is('TARGET_SETUP') || (!hasInitialNodes && !SwarmMode.isTransforming());
             
             undoBtn.disabled = moveHistory.length === 0;
             resetTransformBtn.disabled = moveHistory.length === 0; // Enabled only if there's history
-            defineTargetBtn.textContent = mode === 'TARGET_SETUP' ? 'Finish Defining Target' : 'Define Target Shape';
+            defineTargetBtn.textContent = SwarmMode.is('TARGET_SETUP') ? 'Finish Defining Target' : 'Define Target Shape';
             clearTargetBtn.disabled = !hasTargetNodes;
-            gridSizeInput.disabled = mode !== 'SETUP_INITIAL';
-            generateGridBtn.disabled = mode !== 'SETUP_INITIAL';
+            gridSizeInput.disabled = !SwarmMode.is('SETUP_INITIAL');
+            generateGridBtn.disabled = !SwarmMode.is('SETUP_INITIAL');
         }
         
         // --- Event Handlers ---
@@ -445,9 +459,9 @@
             if (initialGridStateForShare) {
                 gridState = JSON.parse(JSON.stringify(initialGridStateForShare));
                 moveHistory = [];
-                clearTransformState(true); // Keep mode if it was transform, else it will reset
-                if (!mode.startsWith('TRANSFORM_')) mode = 'SETUP_INITIAL'; // Ensure correct mode
-                if (mode === 'SETUP_INITIAL' && gridState.flat().some(n=>n)) mode = 'TRANSFORM_SELECT_ROTATING'; // If shape exists, go to transform
+                clearTransformState(true);
+                if (!SwarmMode.isTransforming()) SwarmMode.exitTransform();
+                if (SwarmMode.is('SETUP_INITIAL') && gridState.flat().some(n=>n)) SwarmMode.beginTransform();
                 
                 messageBox.textContent = 'Transformation reset to initial shape.';
                 renderGrid();
@@ -460,11 +474,11 @@
 
 
         defineTargetBtn.addEventListener('click', () => {
-            if (mode === 'TARGET_SETUP') {
-                mode = 'SETUP_INITIAL';
+            if (SwarmMode.is('TARGET_SETUP')) {
+                SwarmMode.finishTargetSetup();
                 messageBox.textContent = (targetGridState && targetGridState.flat().some(n => n)) ? 'Target shape defined. Define/modify initial shape or start transformation.' : 'Target definition cleared. Define an initial shape.';
             } else {
-                mode = 'TARGET_SETUP';
+                SwarmMode.startTargetSetup();
                 messageBox.textContent = 'Defining Target Shape: Click cells to place nodes. Click "Finish Defining Target" when done.';
             }
             initializeGrid(gridSize, true); 
@@ -478,18 +492,18 @@
         });
 
         startTransformBtn.addEventListener('click', () => {
-            if (mode.startsWith('TRANSFORM_')) {
-                mode = 'SETUP_INITIAL';
+            if (SwarmMode.isTransforming()) {
+                SwarmMode.exitTransform();
                 clearTransformState();
-                initialGridStateForShare = JSON.parse(JSON.stringify(gridState)); 
+                initialGridStateForShare = JSON.parse(JSON.stringify(gridState));
                 messageBox.textContent = 'Returned to setup mode. You can edit the initial shape.';
             } else {
                 if (!isShapeConnected(gridState)) {
                     messageBox.textContent = 'Initial shape must be a single connected component to start transformation.';
                     return;
                 }
-                initialGridStateForShare = JSON.parse(JSON.stringify(gridState)); 
-                mode = 'TRANSFORM_SELECT_ROTATING';
+                initialGridStateForShare = JSON.parse(JSON.stringify(gridState));
+                SwarmMode.beginTransform();
                 messageBox.textContent = 'Transformation Mode: Select a node to rotate.';
             }
             updateButtonStates();
@@ -500,8 +514,8 @@
             if (moveHistory.length > 0) {
                 const lastMove = moveHistory.pop();
                 gridState = JSON.parse(JSON.stringify(lastMove.fromState));
-                clearTransformState(true); 
-                mode = 'TRANSFORM_SELECT_ROTATING';
+                clearTransformState(true);
+                SwarmMode.backToSelectRotating();
                 messageBox.textContent = 'Last rotation undone. Select a node to rotate.';
                 renderGrid();
                 updateRotationSequence();
@@ -516,12 +530,12 @@
             const r_click = parseInt(event.currentTarget.dataset.r);
             const c_click = parseInt(event.currentTarget.dataset.c);
 
-            if (mode === 'SETUP_INITIAL') {
+            if (SwarmMode.is('SETUP_INITIAL')) {
                 toggleNodeInGrid(r_click, c_click, gridState);
                 initialGridStateForShare = JSON.parse(JSON.stringify(gridState)); 
-            } else if (mode === 'TARGET_SETUP') {
+            } else if (SwarmMode.is('TARGET_SETUP')) {
                 toggleNodeInGrid(r_click, c_click, targetGridState);
-            } else if (mode.startsWith('TRANSFORM_')) {
+            } else if (SwarmMode.isTransforming()) {
                 processTransformClick(r_click, c_click);
             }
             updateButtonStates(); 
@@ -530,26 +544,26 @@
 
 
         function processTransformClick(r_proc, c_proc) {
-            if (mode === 'TRANSFORM_SELECT_ROTATING') {
+            if (SwarmMode.is('TRANSFORM_SELECT_ROTATING')) {
                 if (gridState[r_proc][c_proc]) {
                     selectedRotatingNode = { r: r_proc, c: c_proc };
-                    mode = 'TRANSFORM_SELECT_PIVOT';
+                    SwarmMode.selectRotatingNode();
                     potentialPivots = getPotentialPivots(selectedRotatingNode, gridState);
                     messageBox.textContent = potentialPivots.length > 0 ? `Node at ${displayCoordsStr(r_proc,c_proc)} selected. Select a YELLOW highlighted pivot.` : `Node at ${displayCoordsStr(r_proc,c_proc)} selected, but no valid pivots. Click node to deselect.`;
                 }
-            } else if (mode === 'TRANSFORM_SELECT_PIVOT') {
+            } else if (SwarmMode.is('TRANSFORM_SELECT_PIVOT')) {
                 if (selectedRotatingNode && selectedRotatingNode.r === r_proc && selectedRotatingNode.c === c_proc) {
-                    clearTransformState(true); 
-                    mode = 'TRANSFORM_SELECT_ROTATING';
+                    clearTransformState(true);
+                    SwarmMode.backToSelectRotating();
                     messageBox.textContent = 'Rotating node deselected. Select a new node.';
                 } else if (gridState[r_proc][c_proc] && potentialPivots.some(p => p.r === r_proc && p.c === c_proc)) {
                     selectedPivotNode = { r: r_proc, c: c_proc };
                     potentialPivots = []; 
                     calculatePotentialDestinationsAndDouble(gridState, selectedRotatingNode, selectedPivotNode);
-                    mode = 'TRANSFORM_SELECT_DESTINATION';
+                    SwarmMode.selectPivot();
                     messageBox.textContent = (potentialDestinations.length > 0 || potentialDoubleDestinations.length > 0) ? `Pivot at ${displayCoordsStr(r_proc,c_proc)} selected. Click BLUE (single) or PURPLE (double) cell to rotate.` : `Pivot at ${displayCoordsStr(r_proc,c_proc)} selected, but no valid moves. Click pivot to deselect.`;
                 }
-            } else if (mode === 'TRANSFORM_SELECT_DESTINATION') {
+            } else if (SwarmMode.is('TRANSFORM_SELECT_DESTINATION')) {
                 const doubleDest = potentialDoubleDestinations.find(dd => dd.finalR === r_proc && dd.finalC === c_proc);
                 const singleDest = potentialDestinations.find(d => d.r === r_proc && d.c === c_proc);
 
@@ -561,12 +575,12 @@
                     selectedPivotNode = null;
                     potentialDestinations = [];
                     potentialDoubleDestinations = [];
-                    mode = 'TRANSFORM_SELECT_PIVOT';
+                    SwarmMode.deselectPivot();
                     potentialPivots = getPotentialPivots(selectedRotatingNode, gridState);
                     messageBox.textContent = `Pivot deselected. Select a new YELLOW highlighted pivot for node ${displayCoordsStr(selectedRotatingNode.r, selectedRotatingNode.c)}.`;
-                } else if (selectedRotatingNode && selectedRotatingNode.r === r_proc && selectedRotatingNode.c === c_proc) { 
+                } else if (selectedRotatingNode && selectedRotatingNode.r === r_proc && selectedRotatingNode.c === c_proc) {
                     clearTransformState(true);
-                    mode = 'TRANSFORM_SELECT_ROTATING';
+                    SwarmMode.backToSelectRotating();
                     messageBox.textContent = 'Selection cleared. Select a node to rotate.';
                 }
                  if (doubleDest || singleDest) { 
@@ -587,7 +601,7 @@
             potentialPivots = [];
             potentialDestinations = [];
             potentialDoubleDestinations = [];
-            if (!keepMode) mode = 'SETUP_INITIAL';
+            if (!keepMode) SwarmMode.exitTransform();
         }
 
         function getPotentialPivots(rotatingNode, currentGrid) {
@@ -710,9 +724,9 @@
                 updateRotationSequence();
             }
 
-            if (addToHistory) { 
+            if (addToHistory) {
                 clearTransformState(true);
-                mode = 'TRANSFORM_SELECT_ROTATING';
+                SwarmMode.backToSelectRotating();
             }
             return {r: destR, c: destC}; 
         }
@@ -742,9 +756,9 @@
             updateRotationSequence();
 
             clearTransformState(true);
-            mode = 'TRANSFORM_SELECT_ROTATING';
+            SwarmMode.backToSelectRotating();
         }
-        
+
         function checkWinCondition() {
             if (!targetGridState || !targetGridState.flat().some(n => n)) return false; 
             for (let r_check = 0; r_check < gridSize; r_check++) {
@@ -791,9 +805,9 @@
                         gridState = JSON.parse(JSON.stringify(initialGridStateForShare));
                     }
 
-                    mode = 'TRANSFORM_SELECT_ROTATING'; 
+                    SwarmMode.force('TRANSFORM_SELECT_ROTATING');
                     if (moveHistory.length === 0 && gridState.flat().every(n=>n===null)) {
-                        mode = 'SETUP_INITIAL'; 
+                        SwarmMode.force('SETUP_INITIAL');
                     }
                     
                     initializeGridUI(gridSize); 

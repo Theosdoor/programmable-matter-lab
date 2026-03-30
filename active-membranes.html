@@ -6,7 +6,7 @@
     <title>P-System Maximally Parallel Analyzer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="theme.css">
-    <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('pm-theme')||'dark');})();</script>
+    <script src="theme-init.js"></script>
     <style>
         body { font-family: 'IBM Plex Mono', monospace; background-color: var(--bg); }
 
@@ -172,6 +172,7 @@
         </div>
     </template>
 
+    <script src="membrane-editor.js"></script>
     <script>
         // --- DOM Elements ---
         const logOutputEl = document.getElementById('log-output');
@@ -183,7 +184,6 @@
         const addRuleButtonsContainer = document.getElementById('add-rule-buttons-container');
         const rulesListContainer = document.getElementById('rules-list-container');
         let nextMembraneNumericId = 1;
-        let draggedElementData = null;
         let ruleFormCounter = 0; // For unique IDs for rule forms
 
         // --- Logging and Error Display (same as before) ---
@@ -196,39 +196,75 @@
         function clearError() { errorDisplayEl.innerHTML = ''; }
 
 
-        // --- Visual Membrane Editor Functions (largely same as before) ---
-        function createNewVisualMembrane(parentIdContainer, initialId = null, initialCharge = '0', initialObjectsStr = '') { /* ... */ }
-        function setupDragAndDrop(handle, container) { /* ... */ }
-        function addDropListeners(target) { /* ... */ }
-        // Actual implementations from previous version
-        function createNewVisualMembrane(parentIdContainer, initialId = null, initialCharge = '0', initialObjectsStr = '') { const membraneNumericId = nextMembraneNumericId++; const membraneId = initialId || `mem${membraneNumericId}`; const memDiv = document.createElement('div'); memDiv.classList.add('membrane-draggable'); memDiv.setAttribute('id', `vis-${membraneId}`); memDiv.setAttribute('data-membrane-id', membraneId); let colorIdx = membraneNumericId -1; const numericMatch = membraneId.match(/\d+/); if (numericMatch) colorIdx = parseInt(numericMatch[0]) - 1; memDiv.classList.add(`membrane-color-${Math.max(0, colorIdx) % 4}`); memDiv.innerHTML = `<div class="membrane-drag-handle" draggable="true"><div class="flex justify-between items-center"><span class="font-bold text-gray-700">ID: </span><input type="text" value="${membraneId}" class="membrane-id-input ml-2 flex-grow p-1 border-none bg-transparent focus:ring-0" placeholder="Membrane ID"/><button class="remove-membrane-btn text-red-500 hover:text-red-700 text-xs p-1 ml-2">&times;</button></div></div><div class="input-group"><label>Charge:</label><select class="membrane-charge-input charge-select"><option value="0" ${initialCharge === '0' ? 'selected' : ''}>0</option><option value="+" ${initialCharge === '+' ? 'selected' : ''}>+</option><option value="-" ${initialCharge === '-' ? 'selected' : ''}>-</option></select></div><div class="input-group"><label>Initial Objects (e.g., a:2,b):</label><input type="text" class="membrane-objects-input" value="${initialObjectsStr}" placeholder="a:1, b:2"></div><div class="membrane-content"></div>`; const targetContainer = (typeof parentIdContainer === 'string') ? document.getElementById(parentIdContainer) : parentIdContainer; if (targetContainer) { if (targetContainer.classList.contains('editor-area')) targetContainer.appendChild(memDiv); else { const contentArea = targetContainer.querySelector('.membrane-content'); if (contentArea) contentArea.appendChild(memDiv); else targetContainer.appendChild(memDiv); } } else visualEditorArea.appendChild(memDiv); setupDragAndDrop(memDiv.querySelector('.membrane-drag-handle'), memDiv); memDiv.querySelector('.remove-membrane-btn').addEventListener('click', (e) => { e.stopPropagation(); memDiv.remove(); log(`Membrane ${memDiv.dataset.membraneId} removed.`, 'info'); }); memDiv.querySelector('.membrane-id-input').addEventListener('change', (e) => { const oldId = memDiv.dataset.membraneId; const newId = e.target.value.trim(); if (newId && newId !== oldId) { memDiv.setAttribute('data-membrane-id', newId); memDiv.setAttribute('id', `vis-${newId}`); log(`Membrane ID changed: ${oldId} -> ${newId}`, 'info'); } else e.target.value = oldId; }); addDropListeners(memDiv.querySelector('.membrane-content')); return memDiv; }
-        function setupDragAndDrop(handle, container) { handle.addEventListener('dragstart', (e) => { e.stopPropagation(); draggedElementData = container; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', container.id); setTimeout(() => { if(draggedElementData) draggedElementData.style.opacity = '0.5'; }, 0); }); handle.addEventListener('dragend', (e) => { e.stopPropagation(); if(draggedElementData) draggedElementData.style.opacity = '1'; draggedElementData = null; document.querySelectorAll('.drop-target-highlight').forEach(el => el.classList.remove('drop-target-highlight')); }); }
-        function addDropListeners(target) { target.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'move'; if (draggedElementData && target !== draggedElementData && !draggedElementData.contains(target)) target.classList.add('drop-target-highlight'); }); target.addEventListener('dragleave', (e) => { e.stopPropagation(); target.classList.remove('drop-target-highlight'); }); target.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); target.classList.remove('drop-target-highlight'); if (draggedElementData && target !== draggedElementData && !draggedElementData.contains(target)) { target.appendChild(draggedElementData); log(`Membrane ${draggedElementData.dataset.membraneId} dropped into ${target.closest('.membrane-draggable')?.dataset.membraneId || 'main editor'}.`, 'info'); } if (draggedElementData) draggedElementData.style.opacity = '1'; draggedElementData = null; }); }
-        addDropListeners(visualEditorArea);
+        // --- Visual Membrane Editor Functions ---
+        function createNewVisualMembrane(parentIdContainer, initialId = null, initialCharge = '0', initialObjectsStr = '') { const membraneNumericId = nextMembraneNumericId++; const membraneId = initialId || `mem${membraneNumericId}`; const memDiv = document.createElement('div'); memDiv.classList.add('membrane-draggable'); memDiv.setAttribute('id', `vis-${membraneId}`); memDiv.setAttribute('data-membrane-id', membraneId); let colorIdx = membraneNumericId -1; const numericMatch = membraneId.match(/\d+/); if (numericMatch) colorIdx = parseInt(numericMatch[0]) - 1; memDiv.classList.add(`membrane-color-${Math.max(0, colorIdx) % 4}`); memDiv.innerHTML = `<div class="membrane-drag-handle" draggable="true"><div class="flex justify-between items-center"><span class="font-bold text-gray-700">ID: </span><input type="text" value="${membraneId}" class="membrane-id-input ml-2 flex-grow p-1 border-none bg-transparent focus:ring-0" placeholder="Membrane ID"/><button class="remove-membrane-btn text-red-500 hover:text-red-700 text-xs p-1 ml-2">&times;</button></div></div><div class="input-group"><label>Charge:</label><select class="membrane-charge-input charge-select"><option value="0" ${initialCharge === '0' ? 'selected' : ''}>0</option><option value="+" ${initialCharge === '+' ? 'selected' : ''}>+</option><option value="-" ${initialCharge === '-' ? 'selected' : ''}>-</option></select></div><div class="input-group"><label>Initial Objects (e.g., a:2,b):</label><input type="text" class="membrane-objects-input" value="${initialObjectsStr}" placeholder="a:1, b:2"></div><div class="membrane-content"></div>`; const targetContainer = (typeof parentIdContainer === 'string') ? document.getElementById(parentIdContainer) : parentIdContainer; if (targetContainer) { if (targetContainer.classList.contains('editor-area')) targetContainer.appendChild(memDiv); else { const contentArea = targetContainer.querySelector('.membrane-content'); if (contentArea) contentArea.appendChild(memDiv); else targetContainer.appendChild(memDiv); } } else visualEditorArea.appendChild(memDiv); setupDragAndDrop(memDiv.querySelector('.membrane-drag-handle'), memDiv); memDiv.querySelector('.remove-membrane-btn').addEventListener('click', (e) => { e.stopPropagation(); memDiv.remove(); log(`Membrane ${memDiv.dataset.membraneId} removed.`, 'info'); }); memDiv.querySelector('.membrane-id-input').addEventListener('change', (e) => { const oldId = memDiv.dataset.membraneId; const newId = e.target.value.trim(); if (newId && newId !== oldId) { memDiv.setAttribute('data-membrane-id', newId); memDiv.setAttribute('id', `vis-${newId}`); log(`Membrane ID changed: ${oldId} -> ${newId}`, 'info'); } else e.target.value = oldId; }); addDropListeners(memDiv.querySelector('.membrane-content'), visualEditorArea); return memDiv; }
+        // setupDragAndDrop and addDropListeners are provided by membrane-editor.js
+        addDropListeners(visualEditorArea, visualEditorArea);
         addMembraneButton.addEventListener('click', () => createNewVisualMembrane(visualEditorArea));
 
 
-        // --- Rule Form Management (New) ---
+        // --- Rule Form Management ---
+        function createRuleForm(type, data = {}) {
+            const template = document.getElementById(`rule-template-${type}`);
+            if (!template) { log(`Error: Template not found for rule type '${type}'`, 'error'); return null; }
+            ruleFormCounter++;
+            const ruleBlock = template.content.cloneNode(true).firstElementChild;
+            ruleBlock.dataset.formId = `ruleform_${ruleFormCounter}`;
+            ruleBlock.querySelector('.rule-title').textContent += ` #${ruleFormCounter}`;
+            ruleBlock.querySelector('.remove-rule-btn').addEventListener('click', () => {
+                ruleBlock.remove();
+                log(`Rule form ${ruleBlock.dataset.formId} removed.`, 'info');
+            });
+
+            const set = (sel, val) => { const el = ruleBlock.querySelector(sel); if (el && val != null) el.value = val; };
+            set('.main-mem-label', data.mainMem);
+            set('.main-mem-charge', data.mainCharge);
+            set('.consuming-obj', data.consume);
+
+            switch (type) {
+                case 'evolution':
+                    set('.evo-products', data.products);
+                    if (data.finalCharge) set('.evo-final-charge', data.finalCharge);
+                    break;
+                case 'send_in':
+                    set('.sendin-obj-parent', data.objParent);
+                    set('.sendin-obj-main', data.productsMain);
+                    set('.sendin-final-charge', data.finalCharge);
+                    break;
+                case 'send_out':
+                    set('.sendout-obj-parent', data.productsParent);
+                    set('.sendout-final-charge', data.finalCharge);
+                    break;
+                case 'dissolution':
+                    set('.diss-released-objs', data.released);
+                    break;
+                case 'elem_division':
+                    set('.ediv-r1-label', data.r1Label);
+                    set('.ediv-r1-charge', data.r1Charge);
+                    set('.ediv-r1-obj', data.r1Obj);
+                    set('.ediv-r2-label', data.r2Label);
+                    set('.ediv-r2-charge', data.r2Charge);
+                    set('.ediv-r2-obj', data.r2Obj);
+                    break;
+                case 'non_elem_division':
+                    set('.fdiv-lhs-inner', data.lhsInner);
+                    set('.fdiv-r1-outer-label', data.r1OuterL);
+                    set('.fdiv-r1-outer-charge', data.r1OuterC);
+                    set('.fdiv-r1-inner', data.r1Inner);
+                    set('.fdiv-r2-outer-label', data.r2OuterL);
+                    set('.fdiv-r2-outer-charge', data.r2OuterC);
+                    set('.fdiv-r2-inner', data.r2Inner);
+                    break;
+            }
+
+            rulesListContainer.appendChild(ruleBlock);
+            log(`Added new ${type} rule form.`, 'info');
+            return ruleBlock;
+        }
+
         addRuleButtonsContainer.addEventListener('click', (e) => {
             if (e.target.classList.contains('add-rule-type-btn')) {
-                const ruleType = e.target.dataset.ruleType;
-                const templateId = `rule-template-${ruleType}`;
-                const template = document.getElementById(templateId);
-                if (template) {
-                    ruleFormCounter++;
-                    const ruleBlock = template.content.cloneNode(true).firstElementChild;
-                    ruleBlock.dataset.formId = `ruleform_${ruleFormCounter}`; // Unique ID for the form instance
-                    ruleBlock.querySelector('.rule-title').textContent += ` #${ruleFormCounter}`;
-                    
-                    ruleBlock.querySelector('.remove-rule-btn').addEventListener('click', () => {
-                        ruleBlock.remove();
-                        log(`Rule form ${ruleBlock.dataset.formId} removed.`, 'info');
-                    });
-                    rulesListContainer.appendChild(ruleBlock);
-                    log(`Added new ${ruleType} rule form.`, 'info');
-                } else {
-                    log(`Error: Template not found for rule type '${ruleType}' (ID: ${templateId})`, 'error');
-                }
+                createRuleForm(e.target.dataset.ruleType);
             }
         });
         
@@ -496,59 +532,7 @@
 
         // --- Initial Setup ---
         function addAndFillRuleForm(ruleData) {
-            const addBtn = document.querySelector(`.add-rule-type-btn[data-rule-type="${ruleData.type}"]`);
-            if (addBtn) {
-                addBtn.click(); // Simulate click to add the correct form
-                const newBlock = rulesListContainer.lastElementChild;
-                if (!newBlock) {
-                    log(`Error: Failed to add rule block for type ${ruleData.type}`, "error");
-                    return;
-                }
-
-                newBlock.querySelector('.main-mem-label').value = ruleData.mainMem;
-                newBlock.querySelector('.main-mem-charge').value = ruleData.mainCharge;
-                
-                const consumingObjEl = newBlock.querySelector('.consuming-obj');
-                if (consumingObjEl && ruleData.consume) consumingObjEl.value = ruleData.consume;
-
-                switch (ruleData.type) {
-                    case 'evolution':
-                        newBlock.querySelector('.evo-products').value = ruleData.products || '';
-                        if(ruleData.finalCharge) newBlock.querySelector('.evo-final-charge').value = ruleData.finalCharge;
-                        break;
-                    case 'send_in':
-                        newBlock.querySelector('.sendin-obj-parent').value = ruleData.objParent || '';
-                        newBlock.querySelector('.sendin-obj-main').value = ruleData.productsMain || '';
-                        newBlock.querySelector('.sendin-final-charge').value = ruleData.finalCharge || '0';
-                        break;
-                    case 'send_out':
-                        newBlock.querySelector('.sendout-obj-parent').value = ruleData.productsParent || '';
-                        newBlock.querySelector('.sendout-final-charge').value = ruleData.finalCharge || '0';
-                        break;
-                    case 'dissolution':
-                         if(newBlock.querySelector('.diss-released-objs')) newBlock.querySelector('.diss-released-objs').value = ruleData.released || '';
-                        break;
-                    case 'elem_division':
-                        newBlock.querySelector('.ediv-r1-label').value = ruleData.r1Label || '';
-                        newBlock.querySelector('.ediv-r1-charge').value = ruleData.r1Charge || '0';
-                        newBlock.querySelector('.ediv-r1-obj').value = ruleData.r1Obj || '';
-                        newBlock.querySelector('.ediv-r2-label').value = ruleData.r2Label || '';
-                        newBlock.querySelector('.ediv-r2-charge').value = ruleData.r2Charge || '0';
-                        newBlock.querySelector('.ediv-r2-obj').value = ruleData.r2Obj || '';
-                        break;
-                    case 'non_elem_division':
-                        newBlock.querySelector('.fdiv-lhs-inner').value = ruleData.lhsInner || '';
-                        newBlock.querySelector('.fdiv-r1-outer-label').value = ruleData.r1OuterL || '';
-                        newBlock.querySelector('.fdiv-r1-outer-charge').value = ruleData.r1OuterC || '0';
-                        newBlock.querySelector('.fdiv-r1-inner').value = ruleData.r1Inner || '';
-                        newBlock.querySelector('.fdiv-r2-outer-label').value = ruleData.r2OuterL || '';
-                        newBlock.querySelector('.fdiv-r2-outer-charge').value = ruleData.r2OuterC || '0';
-                        newBlock.querySelector('.fdiv-r2-inner').value = ruleData.r2Inner || '';
-                        break;
-                }
-            } else {
-                log(`Error: Could not find 'Add' button for rule type ${ruleData.type}`, 'error');
-            }
+            createRuleForm(ruleData.type, ruleData);
         }
 
 

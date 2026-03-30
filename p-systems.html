@@ -6,7 +6,7 @@
     <title>P-System Visual Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="theme.css">
-    <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('pm-theme')||'dark');})();</script>
+    <script src="theme-init.js"></script>
     <style>
         body { font-family: 'IBM Plex Mono', monospace; }
 
@@ -95,14 +95,14 @@
         </div>
     </div>
 
+    <script src="membrane-editor.js"></script>
     <script>
         // --- Globals ---
         let psystem = null; 
         let initialPsystemState = null; 
         let currentStep = 0;
         const MAX_RUN_STEPS = 10;
-        let nextMembraneId = 1; 
-        let draggedElementData = null; 
+        let nextMembraneId = 1;
 
         // --- DOM Elements ---
         const addMembraneButton = document.getElementById('add-membrane-btn');
@@ -232,55 +232,13 @@
             });
             
             const contentArea = memDiv.querySelector('.membrane-content');
-            if (contentArea) addDropListeners(contentArea);
+            if (contentArea) addDropListeners(contentArea, visualEditorArea);
 
             return memDiv;
         }
 
-        function setupDragAndDrop(handleElement, draggableContainer) {
-            handleElement.addEventListener('dragstart', (e) => {
-                draggedElementData = draggableContainer; 
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', draggableContainer.id); 
-                setTimeout(() => { if(draggedElementData) draggedElementData.style.opacity = '0.5'; }, 0);
-            });
-
-            handleElement.addEventListener('dragend', () => { 
-                if(draggedElementData) draggedElementData.style.opacity = '1';
-                draggedElementData = null;
-                document.querySelectorAll('.drop-target-highlight').forEach(el => el.classList.remove('drop-target-highlight'));
-            });
-        }
-        
-        function addDropListeners(targetElementOrArea) {
-             targetElementOrArea.addEventListener('dragover', (e) => {
-                e.preventDefault(); 
-                e.dataTransfer.dropEffect = 'move';
-                if (draggedElementData && targetElementOrArea !== draggedElementData && !draggedElementData.contains(targetElementOrArea)) {
-                     targetElementOrArea.classList.add('drop-target-highlight');
-                }
-            });
-            targetElementOrArea.addEventListener('dragleave', () => targetElementOrArea.classList.remove('drop-target-highlight'));
-            targetElementOrArea.addEventListener('drop', (e) => {
-                e.preventDefault(); e.stopPropagation(); 
-                targetElementOrArea.classList.remove('drop-target-highlight');
-
-                if (draggedElementData && targetElementOrArea !== draggedElementData && !draggedElementData.contains(targetElementOrArea)) {
-                    let actualDropTarget = targetElementOrArea.classList.contains('membrane-content') || targetElementOrArea.classList.contains('editor-area') 
-                                           ? targetElementOrArea 
-                                           : targetElementOrArea.closest('.membrane-draggable')?.querySelector('.membrane-content') || visualEditorArea;
-                    
-                    if (actualDropTarget) {
-                        actualDropTarget.appendChild(draggedElementData);
-                    } else {
-                        visualEditorArea.appendChild(draggedElementData);
-                    }
-                }
-                if (draggedElementData) draggedElementData.style.opacity = '1'; 
-                draggedElementData = null; 
-            });
-        }
-        addDropListeners(visualEditorArea);
+        // setupDragAndDrop and addDropListeners are provided by membrane-editor.js
+        addDropListeners(visualEditorArea, visualEditorArea);
 
         // --- P-System Logic & Parsing ---
         function parseMultiset(str) { 
