@@ -346,9 +346,19 @@
       }
     }
 
+    /* Landing: scrollable + top-anchored on phones so no content is clipped */
+    @media (max-width: 700px) {
+      #landing {
+        justify-content: flex-start;
+        overflow-y: auto;
+        padding-top: 1.75rem;
+        padding-bottom: 2rem;
+      }
+    }
+
     /* Landing: tighter spacing on phones */
     @media (max-width: 480px) {
-      #landing { padding: 1.25rem 1rem; gap: 1.5rem; }
+      #landing { padding: 1.25rem 1rem 2rem; gap: 1.5rem; }
 
       .hero-eyebrow { font-size: 0.62rem; }
       .hero-sub     { font-size: 0.7rem; }
