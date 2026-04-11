@@ -60,6 +60,7 @@ The hub reads and writes a `pm-theme` key in `localStorage` (`"dark"` or `"light
 ## Deployment
 
 Pushes to `main` automatically deploy to GitHub Pages via the included workflow. No build or install step is required.
+
 ---
 
 ## Background
