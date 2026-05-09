@@ -684,14 +684,14 @@
             nextMembraneNumericId = 1; ruleFormCounter = 0;
 
             const mem10 = createNewVisualMembrane(visualEditorArea, '10', '0', '');
-            const mem9 = createNewVisualMembrane(mem10, '9', '0', 'b:1');
+            const mem9 = createNewVisualMembrane(mem10, '9', '0', '');
             const mem3 = createNewVisualMembrane(mem9, '3', '0', '');
-            createNewVisualMembrane(mem3, '1', '+', '');
-            createNewVisualMembrane(mem3, '2', '-', '');
-            const mem4 = createNewVisualMembrane(mem9, '4', '-', 'a:1');
+            createNewVisualMembrane(mem3, '1', '0', '');
+            createNewVisualMembrane(mem3, '2', '0', '');
+            const mem4 = createNewVisualMembrane(mem9, '4', '-', '');
             createNewVisualMembrane(mem4, '6', '+', '');
-            createNewVisualMembrane(mem4, '7', '+', '');
-            const mem5 = createNewVisualMembrane(mem9, '5', '-', '');
+            createNewVisualMembrane(mem4, '7', '-', 'a:1');
+            const mem5 = createNewVisualMembrane(mem9, '5', '+', 'b:1');
             createNewVisualMembrane(mem5, '8', '+', '');
             
             const maxIdNum = ['1','2','3','4','5','6','7','8','9','10'].map(id => parseInt(id.match(/\d+/)?.[0] || '0')).reduce((max, curr) => Math.max(max, curr), 0);
