@@ -35,5 +35,16 @@
   const missingResource = window.FormalStep.enumerateMaximalRuleMultisets(emptyLhsMissingResource, resources, rule => rule.membraneId);
   assert(missingResource.length === 0, 'empty-LHS exclusive rules should still require an existing resource key');
 
+  const multiExclusiveRules = [
+    { id: 'f', membraneId: 'outer', lhs: map([]), kind: 'structure', exclusiveKeys: ['outer', 'inner'] },
+    { id: 'use-inner', membraneId: 'inner', lhs: map([['token', 1]]), kind: 'rewrite', exclusiveKeys: ['inner'] }
+  ];
+  const multiExclusive = window.FormalStep.enumerateMaximalRuleMultisets(
+    multiExclusiveRules,
+    new Map([['outer', map([])], ['inner', map([['token', 1]])]]),
+    rule => rule.exclusiveKeys
+  );
+  assert(multiExclusive.length === 2, 'multi-key exclusivity should prevent structural and inner rules from co-occurring');
+
   document.body.textContent = 'formal-step smoke tests passed';
 </script>

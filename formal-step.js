@@ -22,15 +22,21 @@
     return rule.resourceKey || rule.membraneId;
   }
 
+  function normalizeExclusiveKeys(exclusiveKey) {
+    if (!exclusiveKey) return [];
+    return Array.isArray(exclusiveKey) ? exclusiveKey.filter(Boolean) : [exclusiveKey];
+  }
+
   function maxApplicationsForRule(rule, availableResources, exclusiveKey, usedExclusiveKeys) {
-    if (exclusiveKey && usedExclusiveKeys.has(exclusiveKey)) return 0;
+    const exclusiveKeys = normalizeExclusiveKeys(exclusiveKey);
+    if (exclusiveKeys.some(key => usedExclusiveKeys.has(key))) return 0;
 
     const resourceKey = resourceKeyForRule(rule);
     const resource = availableResources.get(resourceKey);
     if (!resource) return 0;
 
     const lhs = rule.lhs || new Map();
-    if (lhs.size === 0) return exclusiveKey ? 1 : 0;
+    if (lhs.size === 0) return exclusiveKeys.length > 0 ? 1 : 0;
 
     let max = Infinity;
     for (const [obj, needed] of lhs) {
@@ -38,8 +44,8 @@
       max = Math.min(max, Math.floor((resource.get(obj) || 0) / needed));
     }
 
-    if (!Number.isFinite(max)) return exclusiveKey ? 1 : 0;
-    return exclusiveKey ? Math.min(max, 1) : max;
+    if (!Number.isFinite(max)) return exclusiveKeys.length > 0 ? 1 : 0;
+    return exclusiveKeys.length > 0 ? Math.min(max, 1) : max;
   }
 
   function consumeRule(rule, availableResources, count) {
@@ -106,6 +112,7 @@
 
       const rule = ruleList[index];
       const exclusiveKey = keyForRule(rule) || '';
+      const exclusiveKeys = normalizeExclusiveKeys(exclusiveKey);
       const maxApplications = maxApplicationsForRule(rule, availableResources, exclusiveKey, usedExclusiveKeys);
 
       for (let count = 0; count <= maxApplications; count += 1) {
@@ -114,7 +121,7 @@
 
         if (count > 0) {
           nextCounts.set(rule.id, count);
-          if (exclusiveKey) nextUsedExclusiveKeys.add(exclusiveKey);
+          exclusiveKeys.forEach(key => nextUsedExclusiveKeys.add(key));
         }
 
         visit(index + 1, consumeRule(rule, availableResources, count), nextUsedExclusiveKeys, nextCounts);

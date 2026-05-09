@@ -90,8 +90,8 @@
         <div class="mt-6 p-4 bg-indigo-50 rounded-md border border-indigo-100">
             <h3 class="text-lg font-semibold text-gray-700 mb-2">Model assumptions</h3>
             <p class="text-sm text-gray-700">
-                Exact one-step maximally parallel analysis is implemented for rule types (a)-(d).
-                Division rules (e)-(f) are blocked until full structural semantics are implemented.
+                Exact one-step maximally parallel analysis is implemented for rule types (a)-(d) and non-elementary division (f).
+                Elementary division (e) is blocked until its full structural semantics are implemented.
             </p>
         </div>
     </div>
@@ -400,7 +400,7 @@
         }
 
         function getUnsupportedFormalRules(rules) {
-            return rules.filter(rule => rule.type === 'e' || rule.type === 'f');
+            return rules.filter(rule => rule.type === 'e');
         }
 
         function toFormalActiveRule(rule, membranes) {
@@ -420,6 +420,21 @@
                 exclusiveKey = resourceKeyForMembrane(mainId);
             } else if (rule.type === 'c' || rule.type === 'd') {
                 exclusiveKey = resourceKeyForMembrane(mainId);
+            } else if (rule.type === 'f') {
+                const innerMems = rule.conditions?.lhsInnerMems || [];
+                if (innerMems.length === 0) return null;
+                const innerLabels = new Set(innerMems.map(inner => inner.label));
+
+                for (const inner of innerMems) {
+                    const innerMembrane = membranes.get(inner.label);
+                    if (!innerMembrane || innerMembrane.parentId !== mainId || innerMembrane.charge !== inner.charge) return null;
+                }
+
+                for (const child of membranes.values()) {
+                    if (child.parentId === mainId && !innerLabels.has(child.id) && child.charge !== '0') return null;
+                }
+
+                exclusiveKey = [resourceKeyForMembrane(mainId), ...innerMems.map(inner => resourceKeyForMembrane(inner.label))];
             } else if (rule.type !== 'a') {
                 return null;
             }
@@ -628,7 +643,7 @@
             const unsupportedRules = getUnsupportedFormalRules(rulesArray);
             if (unsupportedRules.length > 0) {
                 const formIds = unsupportedRules.map(rule => rule.formId || rule.id).join(', ');
-                const message = `exact one-step analysis currently supports rule types (a)-(d), remove division rule forms: ${formIds}.`;
+                const message = `exact one-step analysis currently supports rule types (a)-(d) and (f), remove elementary division rule forms: ${formIds}.`;
                 displayErrorText(message);
                 setResultsMessage(message, 'text-red-500');
                 log(`Blocked unsupported formal rules: ${formIds}`, 'warn');
@@ -668,26 +683,35 @@
             visualEditorArea.innerHTML = ''; rulesListContainer.innerHTML = ''; 
             nextMembraneNumericId = 1; ruleFormCounter = 0;
 
-            const mem7 = createNewVisualMembrane(visualEditorArea, '7', '+', 'a:1, d:1');
-            const mem4 = createNewVisualMembrane(mem7, '4', '+', 'a:1, b:1');
-            const mem5 = createNewVisualMembrane(mem7, '5', '-', 'b:1,c:2,d:1');
-            createNewVisualMembrane(mem4, '2', '+', 'c:1');
-            createNewVisualMembrane(mem4, '3', '-', 'a:1,b:1,c:1');
-            createNewVisualMembrane(mem4, '6', '-', 'a:1,d:1');
-            createNewVisualMembrane(mem5, '1', '0', 'a:2,b:1,c:1');
+            const mem10 = createNewVisualMembrane(visualEditorArea, '10', '0', '');
+            const mem9 = createNewVisualMembrane(mem10, '9', '0', 'b:1');
+            const mem3 = createNewVisualMembrane(mem9, '3', '0', '');
+            createNewVisualMembrane(mem3, '1', '+', '');
+            createNewVisualMembrane(mem3, '2', '-', '');
+            const mem4 = createNewVisualMembrane(mem9, '4', '-', 'a:1');
+            createNewVisualMembrane(mem4, '6', '+', '');
+            createNewVisualMembrane(mem4, '7', '+', '');
+            const mem5 = createNewVisualMembrane(mem9, '5', '-', '');
+            createNewVisualMembrane(mem5, '8', '+', '');
             
-            const maxIdNum = ['1','2','3','4','5','6','7'].map(id => parseInt(id.match(/\d+/)?.[0] || '0')).reduce((max, curr) => Math.max(max, curr), 0);
+            const maxIdNum = ['1','2','3','4','5','6','7','8','9','10'].map(id => parseInt(id.match(/\d+/)?.[0] || '0')).reduce((max, curr) => Math.max(max, curr), 0);
             nextMembraneNumericId = maxIdNum + 1;
 
             const exampleRulesData = [
-                { type: 'evolution', mainMem: '2', mainCharge: '+', consume: 'c', products: 'd' }, // Rule i
-                // Rule ii (expanded)
-                ...[1,2,3,4,5,6,7].map(i => ({ type: 'send_out', mainMem: String(i), mainCharge: '+', consume: 'a', productsParent: 'b', finalCharge: '-' })),
-                // Rule iii (expanded)
-                ...[1,2,3,4,5,6].map(i => ({ type: 'send_in', mainMem: String(i), mainCharge: '-', objParent: 'a', productsMain: 'b', finalCharge: '+' }))
+                { type: 'send_in', mainMem: '5', mainCharge: '-', objParent: 'b', productsMain: 'b', finalCharge: '+' },
+                { type: 'send_in', mainMem: '7', mainCharge: '+', objParent: 'a', productsMain: 'a', finalCharge: '-' },
+                { type: 'non_elem_division', mainMem: '3', mainCharge: '0', lhsInner: '1:+, 2:-',
+                  r1OuterL: '3', r1OuterC: '0', r1Inner: '1:0',
+                  r2OuterL: '3', r2OuterC: '0', r2Inner: '2:0' },
+                { type: 'non_elem_division', mainMem: '4', mainCharge: '-', lhsInner: '6:+, 7:+',
+                  r1OuterL: '4', r1OuterC: '-', r1Inner: '6:+',
+                  r2OuterL: '4', r2OuterC: '-', r2Inner: '7:+' },
+                { type: 'non_elem_division', mainMem: '9', mainCharge: '0', lhsInner: '4:-, 5:+',
+                  r1OuterL: '9', r1OuterC: '0', r1Inner: '4:0',
+                  r2OuterL: '9', r2OuterC: '0', r2Inner: '5:0' }
             ];
             exampleRulesData.forEach(addAndFillRuleForm);
-            log("Supported formal one-step example loaded.", "info");
+            log("Figure 2 active-membrane example loaded.", "info");
         }
         
         document.addEventListener('DOMContentLoaded', () => {

@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>revision example smoke tests</title>
+<script src="../formal-step.js"></script>
+<body>
+<script>
+  function assert(condition, message) {
+    if (!condition) throw new Error(message);
+  }
+
+  function map(entries) {
+    return new Map(entries);
+  }
+
+  function hasCounts(sets, expected) {
+    return sets.some(set => {
+      for (const [ruleId, count] of Object.entries(expected)) {
+        if ((set.counts.get(ruleId) || 0) !== count) return false;
+      }
+      for (const [ruleId, count] of set.counts) {
+        if ((expected[ruleId] || 0) !== count) return false;
+      }
+      return true;
+    });
+  }
+
+  const activeInitialRules = [
+    { id: 'b5', membraneId: 'membrane:5', resourceKey: 'membrane:9', lhs: map([['b', 1]]), exclusiveKeys: ['membrane:5'] },
+    { id: 'a7', membraneId: 'membrane:7', resourceKey: 'membrane:4', lhs: map([['a', 1]]), exclusiveKeys: ['membrane:7'] },
+    { id: 'f3', membraneId: 'membrane:3', resourceKey: 'membrane:3', lhs: map([]), exclusiveKeys: ['membrane:3', 'membrane:1', 'membrane:2'] },
+    { id: 'f4', membraneId: 'membrane:4', resourceKey: 'membrane:4', lhs: map([]), exclusiveKeys: ['membrane:4', 'membrane:6', 'membrane:7'] }
+  ];
+  const activeInitialResources = new Map([
+    ['membrane:9', map([['b', 1]])],
+    ['membrane:4', map([['a', 1]])],
+    ['membrane:3', map([])]
+  ]);
+  const activeInitialSets = window.FormalStep.enumerateMaximalRuleMultisets(
+    activeInitialRules,
+    activeInitialResources,
+    rule => rule.exclusiveKeys
+  );
+  assert(
+    hasCounts(activeInitialSets, { b5: 1, a7: 1, f3: 1 }),
+    'active membrane Figure 2 first expected maximal set should be present'
+  );
+
+  const activeSecondRules = [
+    { id: 'f9', membraneId: 'membrane:9', resourceKey: 'membrane:9', lhs: map([]), exclusiveKeys: ['membrane:9', 'membrane:4', 'membrane:5'] }
+  ];
+  const activeSecondSets = window.FormalStep.enumerateMaximalRuleMultisets(
+    activeSecondRules,
+    new Map([['membrane:9', map([])]]),
+    rule => rule.exclusiveKeys
+  );
+  assert(hasCounts(activeSecondSets, { f9: 1 }), 'active membrane Figure 2 second expected maximal set should be present');
+
+  const psysInitialRules = [
+    { id: 'emit-a', membraneId: '3', lhs: map([['a', 1]]) },
+    { id: 'send-x-1', membraneId: '3', lhs: map([['x', 1]]) },
+    { id: 'send-x-2', membraneId: '3', lhs: map([['x', 1]]) }
+  ];
+  const psysInitialSets = window.FormalStep.enumerateMaximalRuleMultisets(
+    psysInitialRules,
+    new Map([['3', map([['a', 1], ['x', 1]])]]),
+    () => ''
+  );
+  assert(psysInitialSets.length === 2, 'P-system initial step should branch on sending x to membrane 1 or 2');
+  assert(hasCounts(psysInitialSets, { 'emit-a': 1, 'send-x-1': 1 }), 'P-system branch to membrane 1 missing');
+  assert(hasCounts(psysInitialSets, { 'emit-a': 1, 'send-x-2': 1 }), 'P-system branch to membrane 2 missing');
+
+  document.body.textContent = 'revision example smoke tests passed';
+</script>

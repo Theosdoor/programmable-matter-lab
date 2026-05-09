@@ -880,8 +880,8 @@
             // Create Membrane 3 (Skin) - parent is the main visual editor area
             const mem3 = createNewVisualMembrane(
                 'visual-editor-area',
-                'x:1',                                     // Initial objects for membrane 3
-                'e -> e(out)\nx,c -> e(out)',             // Rules for membrane 3
+                'a:1,x:1',                                 // Initial objects for membrane 3
+                'a -> a(out)\nb -> b(out)\nx -> x(out@1)\nx -> x(out@2)',
                 '3'                                        // Desired ID for membrane 3
             );
             if (mem3) { // Hide remove button for skin membrane
@@ -889,20 +889,20 @@
                 if (removeBtn3) removeBtn3.style.display = 'none'; 
             }
 
+            // Create Membrane 1 (nested inside Membrane 3)
+            const mem1 = createNewVisualMembrane(
+                `vis-3`,                                   // Parent is the visual element of membrane 3
+                '',                                        // No initial objects for membrane 1
+                'x -> y,a(out)\ny -> y,b(out)\ny -> DELTA',
+                '1'                                        // Desired ID for membrane 1
+            );
+
             // Create Membrane 2 (nested inside Membrane 3)
             const mem2 = createNewVisualMembrane(
                 `vis-3`,                                   // Parent is the visual element of membrane 3
                 '',                                        // No initial objects for membrane 2
-                'b -> b,e,c\nf,f -> f\nf -> DELTA',       // Rules for membrane 2
+                'x -> y,a(out)\ny -> x,b(out)\nx -> DELTA',
                 '2'                                        // Desired ID for membrane 2
-            );
-
-            // Create Membrane 1 (nested inside Membrane 2)
-            const mem1 = createNewVisualMembrane(
-                `vis-2`,                                   // Parent is the visual element of membrane 2
-                'a:1,f:1',                                 // Initial objects for membrane 1
-                'a -> a,b\na -> DELTA\nf -> f,f',        // Rules for membrane 1
-                '1'                                        // Desired ID for membrane 1
             );
             
             // Ensure nextMembraneId is set beyond the highest manually assigned ID
