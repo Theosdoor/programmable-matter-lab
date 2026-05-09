@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>P-system target parser smoke test</title>
+<body>
+<script>
+  function assert(condition, message) {
+    if (!condition) throw new Error(message);
+  }
+
+  function parseNamedTarget(targetInfo) {
+    return targetInfo.substring(targetInfo.indexOf('@') + 1);
+  }
+
+  assert(parseNamedTarget('in@1') === '1', 'in@1 should target membrane 1');
+  assert(parseNamedTarget('in@2') === '2', 'in@2 should target membrane 2');
+  assert(parseNamedTarget('out@1') === '1', 'out@1 compatibility alias should target membrane 1');
+
+  document.body.textContent = 'P-system target parser smoke test passed';
+</script>

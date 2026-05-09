@@ -303,7 +303,7 @@
                         const targetInfoLower = targetInfo.toLowerCase();
                         if (targetInfoLower.startsWith('out@') || targetInfoLower.startsWith('in@')) {
                             targetType = 'in@';
-                            targetMembrane = targetInfo.substring(4);
+                            targetMembrane = targetInfo.substring(targetInfo.indexOf('@') + 1);
                         } else if (targetInfoLower === 'out') {
                             targetType = 'out';
                         } else if (targetInfoLower === 'here') {
