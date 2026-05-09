@@ -57,7 +57,7 @@
                 <h2 class="text-xl font-semibold text-gray-600">1. Define P-System Visually</h2>
                 <p class="text-sm text-gray-500">
                     Objects: <code>a:2,b</code>. Rules: <code>lhs -> rhs</code>. Default target is <code>(here)</code>.
-                    Specify targets: <code>obj(here)</code>, <code>obj(out)</code>, <code>obj(out@target_id)</code>.
+                    Specify targets: <code>obj(here)</code>, <code>obj(out)</code>, <code>obj(in@target_id)</code>.
                     Dissolve: <code>... DELTA</code>.
                 </p>
                 <div id="visual-editor-area" class="editor-area">
@@ -281,7 +281,7 @@
             rhsStr.split(',').forEach(part => {
                 part = part.trim();
                 if (!part) return;
-                const match = part.match(/([\w:]+)\s*(?:\((here|out|out@[\w-]+)\))?/i);
+                const match = part.match(/([\w:]+)\s*(?:\((here|out|out@[\w-]+|in@[\w-]+)\))?/i);
                 
                 if (match) {
                     const objFull = match[1];
@@ -301,8 +301,8 @@
 
                     if (targetInfo) {
                         const targetInfoLower = targetInfo.toLowerCase();
-                        if (targetInfoLower.startsWith('out@')) {
-                            targetType = 'out@';
+                        if (targetInfoLower.startsWith('out@') || targetInfoLower.startsWith('in@')) {
+                            targetType = 'in@';
                             targetMembrane = targetInfo.substring(4);
                         } else if (targetInfoLower === 'out') {
                             targetType = 'out';
@@ -549,7 +549,7 @@
                             } else {
                                 addObjects(environmentOutputs, productMultiset);
                             }
-                        } else if (prod.target === 'out@' && prod.targetMembrane) {
+                        } else if ((prod.target === 'in@' || prod.target === 'out@') && prod.targetMembrane) {
                             if (next.membranes.has(prod.targetMembrane)) {
                                 if (!membraneOutputs.has(prod.targetMembrane)) membraneOutputs.set(prod.targetMembrane, new Map());
                                 addObjects(membraneOutputs.get(prod.targetMembrane), productMultiset);
@@ -780,12 +780,12 @@
                                 } else { // No parentId means it's a root membrane, send to environment
                                     addObjects(environmentOutputs, productMultiset);
                                 }
-                            } else if (prod.target === 'out@') { 
+                            } else if (prod.target === 'in@' || prod.target === 'out@') { 
                                 if (prod.targetMembrane) {
                                     if (!allMembraneOutputs.has(prod.targetMembrane)) allMembraneOutputs.set(prod.targetMembrane, new Map());
                                     addObjects(allMembraneOutputs.get(prod.targetMembrane), productMultiset);
                                 } else {
-                                    logMessage(`Warning: Rule in ${membrane.id} has target 'out@' but no targetMembrane for product ${prod.obj}.`, 'warn');
+                                    logMessage(`Warning: Rule in ${membrane.id} has a named target but no targetMembrane for product ${prod.obj}.`, 'warn');
                                 }
                             }
                         });
@@ -881,7 +881,7 @@
             const mem3 = createNewVisualMembrane(
                 'visual-editor-area',
                 'a:1,x:1',                                 // Initial objects for membrane 3
-                'a -> a(out)\nb -> b(out)\nx -> x(out@1)\nx -> x(out@2)',
+                'a -> a(out)\nb -> b(out)\nx -> x(in@1)\nx -> x(in@2)',
                 '3'                                        // Desired ID for membrane 3
             );
             if (mem3) { // Hide remove button for skin membrane
