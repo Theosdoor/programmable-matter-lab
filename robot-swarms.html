@@ -446,13 +446,13 @@
                  messageBox.className = 'info-box mt-2 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm';
                  return;
             }
+            gridSizeInput.value = size;
+            gridSize = size;
             resetState(); 
-            initializeGrid(size); 
         });
         restartBtn.addEventListener('click', () => { 
             window.location.hash = ''; 
             resetState(); 
-            initializeGrid(parseInt(gridSizeInput.value)); 
         });
 
         resetTransformBtn.addEventListener('click', () => {
@@ -793,7 +793,8 @@
                     
                     initialGridStateForShare = loadedData.initialState || Array(gridSize).fill(null).map(() => Array(gridSize).fill(null));
                     targetGridState = loadedData.targetState || null;
-                    moveHistory = loadedData.history.map(h => ({
+                    const loadedHistory = Array.isArray(loadedData.history) ? loadedData.history : [];
+                    moveHistory = loadedHistory.map(h => ({
                         fromState: h.from, 
                         toState: h.to,
                         moveDetails: h.details 

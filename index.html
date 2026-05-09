@@ -604,6 +604,8 @@
      THEME
   ================================================================ */
   const html = document.documentElement;
+  let animationEnabled = true;
+  let animationFrameId = null;
 
   (function () {
     const saved = localStorage.getItem('pm-theme') || 'dark';
@@ -625,6 +627,7 @@
      NAVIGATION
   ================================================================ */
   function showLanding() {
+    animationEnabled = true;
     document.getElementById('landing').style.display   = 'flex';
     document.getElementById('tool-view').classList.remove('active');
     document.getElementById('tool-frame').src = '';
@@ -632,6 +635,8 @@
   }
 
   function openTool(src, toolId) {
+    animationEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     document.getElementById('landing').style.display = 'none';
     document.getElementById('tool-view').classList.add('active');
     document.getElementById('tool-frame').src = src;
@@ -747,11 +752,13 @@
   }
 
   function frame() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const alpha = parseFloat(getVar('--canvas-alpha')) || 0.5;
-    for (const h of HELICES) drawHelix(canvas.width * h.xFrac, h.phaseOff, alpha);
-    animT += 0.004;
-    requestAnimationFrame(frame);
+    if (animationEnabled) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const alpha = parseFloat(getVar('--canvas-alpha')) || 0.5;
+      for (const h of HELICES) drawHelix(canvas.width * h.xFrac, h.phaseOff, alpha);
+      animT += 0.004;
+    }
+    animationFrameId = requestAnimationFrame(frame);
   }
 
   frame();

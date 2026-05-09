@@ -25,6 +25,12 @@ A drag-and-drop editor for building nested membrane structures, with step-by-ste
 ### Robot Swarm Transformer
 Simulate **connectivity-preserving shape transformations** in robot swarms on a square grid. Place an initial configuration, define a target shape, then perform pivot rotations. Tracks rotation history with mini-grid previews, supports undo, and generates shareable state links.
 
+## Formal Coverage Notes
+
+- Active Membranes Analyser: exact one-step maximally parallel analysis for supported rule types (a)-(d). Division rules (e)-(f) are blocked until full structural semantics are implemented.
+- P-System Visual Simulator: exact one-step branching for the page's rewriting-rule syntax. Users choose a successor branch to continue a trace.
+- Robot Swarm Transformer: validates interactive pivot rotations and connected initial shapes, but does not compute an automatic transformation sequence.
+
 ---
 
 ## Development
