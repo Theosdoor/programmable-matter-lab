@@ -86,6 +86,14 @@
             <h3 class="text-lg font-semibold text-gray-600 mb-2">Log</h3>
             <div id="log-output" class="h-48 overflow-y-auto text-xs bg-white p-3 border rounded-md"></div>
         </div>
+
+        <div class="mt-6 p-4 bg-indigo-50 rounded-md border border-indigo-100">
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">Model assumptions</h3>
+            <p class="text-sm text-gray-700">
+                Exact one-step maximally parallel analysis is implemented for rule types (a)-(d).
+                Division rules (e)-(f) are blocked until full structural semantics are implemented.
+            </p>
+        </div>
     </div>
 
     <!-- TEMPLATES FOR RULE BLOCKS -->
@@ -173,6 +181,7 @@
     </template>
 
     <script src="membrane-editor.js"></script>
+    <script src="formal-step.js"></script>
     <script>
         // --- DOM Elements ---
         const logOutputEl = document.getElementById('log-output');
@@ -192,8 +201,8 @@
         function clearError() { /* ... */ }
         // Actual log, displayError, clearError implementations from previous version
         function log(message, type = 'info') { const entry = document.createElement('div'); entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`; entry.classList.add('log-entry'); if (type === 'error') entry.style.color = '#ef4444'; else if (type === 'warn') entry.style.color = '#f59e0b'; logOutputEl.appendChild(entry); logOutputEl.scrollTop = logOutputEl.scrollHeight; }
-        function displayError(message) { errorDisplayEl.innerHTML = `<p class="error-message p-3 bg-red-100 border border-red-300 rounded-md">${message}</p>`; }
-        function clearError() { errorDisplayEl.innerHTML = ''; }
+        function displayError(message) { displayErrorText(message); }
+        function clearError() { errorDisplayEl.replaceChildren(); }
 
 
         // --- Visual Membrane Editor Functions ---
@@ -377,6 +386,106 @@
             if (parsedRules.length === 0 && rulesListContainer.children.length > 0) log("No valid rules parsed from forms.", "warn");
             return parsedRules;
         }
+
+        function resourceKeyForMembrane(membraneId) {
+            return `membrane:${membraneId}`;
+        }
+
+        function buildFormalResourceMap(membranes) {
+            const resourceMap = new Map();
+            membranes.forEach((membrane, membraneId) => {
+                resourceMap.set(resourceKeyForMembrane(membraneId), new Map(membrane.objects));
+            });
+            return resourceMap;
+        }
+
+        function getUnsupportedFormalRules(rules) {
+            return rules.filter(rule => rule.type === 'e' || rule.type === 'f');
+        }
+
+        function toFormalActiveRule(rule, membranes) {
+            const mainId = rule.conditions?.membraneLabel;
+            if (!mainId) return null;
+
+            const membrane = membranes.get(mainId);
+            if (!membrane) return null;
+            if (membrane.charge !== rule.conditions?.charge) return null;
+
+            let resourceKey = resourceKeyForMembrane(mainId);
+            let exclusiveKey = '';
+
+            if (rule.type === 'b') {
+                if (!membrane.parentId) return null;
+                resourceKey = resourceKeyForMembrane(membrane.parentId);
+                exclusiveKey = resourceKeyForMembrane(mainId);
+            } else if (rule.type === 'c' || rule.type === 'd') {
+                exclusiveKey = resourceKeyForMembrane(mainId);
+            } else if (rule.type !== 'a') {
+                return null;
+            }
+
+            return {
+                id: rule.id,
+                formId: rule.formId,
+                displayLabel: rule.formId || rule.id,
+                type: rule.type,
+                membraneId: mainId,
+                resourceKey,
+                lhs: new Map(rule.consumingObjects || []),
+                raw: rule.raw,
+                exclusiveKey
+            };
+        }
+
+        function setResultsMessage(message, className = 'text-gray-600') {
+            const paragraph = document.createElement('p');
+            paragraph.className = className;
+            paragraph.textContent = message;
+            resultsDisplayEl.replaceChildren(paragraph);
+        }
+
+        function displayErrorText(message) {
+            const paragraph = document.createElement('p');
+            paragraph.className = 'error-message p-3 bg-red-100 border border-red-300 rounded-md';
+            paragraph.textContent = message;
+            errorDisplayEl.replaceChildren(paragraph);
+        }
+
+        function renderFormalMaximalSets(maximalSets, rulesById) {
+            resultsDisplayEl.replaceChildren();
+
+            if (maximalSets.length === 0) {
+                setResultsMessage('No maximally parallel sets found.');
+                return;
+            }
+
+            maximalSets.forEach((set, index) => {
+                const setDiv = document.createElement('div');
+                setDiv.classList.add('result-item');
+
+                const heading = document.createElement('h3');
+                heading.className = 'font-semibold text-gray-700';
+                heading.textContent = `Set ${index + 1}:`;
+                setDiv.appendChild(heading);
+
+                const tagsContainer = document.createElement('div');
+                tagsContainer.className = 'mt-1';
+
+                set.counts.forEach((count, ruleId) => {
+                    const rule = rulesById.get(ruleId);
+                    if (!rule) return;
+
+                    const tag = document.createElement('span');
+                    tag.className = 'rule-tag';
+                    tag.title = rule.raw || '';
+                    tag.textContent = `${rule.displayLabel} x ${count} (Type ${rule.type})`;
+                    tagsContainer.appendChild(tag);
+                });
+
+                setDiv.appendChild(tagsContainer);
+                resultsDisplayEl.appendChild(setDiv);
+            });
+        }
         
         // --- Core Logic: Finding Maximally Parallel Sets (isRuleApplicable and checkCompatibility need careful review for new rule structure) ---
         function isRuleApplicable(rule, pSystemState) { /* Same as previous version, uses rule.type 'a', 'b' etc. */ 
@@ -512,21 +621,40 @@
 
         // --- Event Listener for Analysis ---
         analyzeBtnEl.addEventListener('click', () => {
-            clearError(); resultsDisplayEl.innerHTML = '<p class="text-gray-500">Analyzing...</p>'; log('--- Analysis Started ---', 'info');
+            clearError(); setResultsMessage('Analyzing...', 'text-gray-500'); log('--- Analysis Started ---', 'info');
             const membranes = parseMembraneStructureFromVisual();
-            if (!membranes || membranes.size === 0) { displayError("Failed to parse membranes. Ensure membranes are defined."); resultsDisplayEl.innerHTML = '<p class="text-red-500">Error parsing membranes.</p>'; return; }
+            if (!membranes || membranes.size === 0) { displayErrorText("Failed to parse membranes. Ensure membranes are defined."); setResultsMessage('Error parsing membranes.', 'text-red-500'); return; }
             const rulesArray = parseRulesFromVisualForms(); 
-            const pSystemState = { membranes, rules: rulesArray }; 
-            const maximalSets = findMaximallyParallelSets(pSystemState, rulesArray);
-            if (maximalSets.length > 0) {
-                resultsDisplayEl.innerHTML = ''; 
-                maximalSets.forEach((set, index) => {
-                    const setDiv = document.createElement('div'); setDiv.classList.add('result-item');
-                    let rulesHtml = set.map(rule => `<span class="rule-tag" title="${rule.raw.replace(/"/g, '&quot;')}">${rule.formId || rule.id} (Type ${rule.type})</span>`).join(' ');
-                    setDiv.innerHTML = `<h3 class="font-semibold text-gray-700">Set ${index + 1}:</h3><div class="mt-1">${rulesHtml || '<em>Empty Set</em>'}</div>`;
-                    resultsDisplayEl.appendChild(setDiv);
-                });
-            } else resultsDisplayEl.innerHTML = '<p class="text-gray-600">No maximally parallel sets found.</p>';
+            const unsupportedRules = getUnsupportedFormalRules(rulesArray);
+            if (unsupportedRules.length > 0) {
+                const formIds = unsupportedRules.map(rule => rule.formId || rule.id).join(', ');
+                const message = `exact one-step analysis currently supports rule types (a)-(d), remove division rule forms: ${formIds}.`;
+                displayErrorText(message);
+                setResultsMessage(message, 'text-red-500');
+                log(`Blocked unsupported formal rules: ${formIds}`, 'warn');
+                return;
+            }
+
+            if (!window.FormalStep) {
+                displayErrorText('Formal one-step analysis engine failed to load.');
+                setResultsMessage('Formal one-step analysis engine failed to load.', 'text-red-500');
+                log('FormalStep global is unavailable.', 'error');
+                return;
+            }
+
+            const formalRules = rulesArray
+                .map(rule => toFormalActiveRule(rule, membranes))
+                .filter(rule => rule !== null);
+            const resourceMap = buildFormalResourceMap(membranes);
+            const rulesById = new Map(formalRules.map(rule => [rule.id, rule]));
+            log(`Enumerating ${formalRules.length} formal rule(s).`, 'info');
+
+            const maximalSets = window.FormalStep.enumerateMaximalRuleMultisets(
+                formalRules,
+                resourceMap,
+                rule => rule.exclusiveKey
+            );
+            renderFormalMaximalSets(maximalSets, rulesById);
             log('--- Analysis Complete ---', 'info');
         });
 
@@ -556,22 +684,10 @@
                 // Rule ii (expanded)
                 ...[1,2,3,4,5,6,7].map(i => ({ type: 'send_out', mainMem: String(i), mainCharge: '+', consume: 'a', productsParent: 'b', finalCharge: '-' })),
                 // Rule iii (expanded)
-                ...[1,2,3,4,5,6].map(i => ({ type: 'send_in', mainMem: String(i), mainCharge: '-', objParent: 'a', productsMain: 'b', finalCharge: '+' })),
-                // Rule iv
-                { type: 'non_elem_division', mainMem: '4', mainCharge: '+', lhsInner: '2:+, 3:-', 
-                  r1OuterL: '4', r1OuterC: '0', r1Inner: '2:-', 
-                  r2OuterL: '4', r2OuterC: '0', r2Inner: '3:+' },
-                // Rule v
-                { type: 'non_elem_division', mainMem: '4', mainCharge: '+', lhsInner: '2:+, 3:-, 6:-',
-                  r1OuterL: '4', r1OuterC: '0', r1Inner: '2:0, 3:+',
-                  r2OuterL: '4', r2OuterC: '0', r2Inner: '6:-' },
-                // Rule vi
-                { type: 'non_elem_division', mainMem: '7', mainCharge: '+', lhsInner: '4:+, 5:-',
-                  r1OuterL: '7', r1OuterC: '0', r1Inner: '4:-',
-                  r2OuterL: '7', r2OuterC: '0', r2Inner: '5:+' }
+                ...[1,2,3,4,5,6].map(i => ({ type: 'send_in', mainMem: String(i), mainCharge: '-', objParent: 'a', productsMain: 'b', finalCharge: '+' }))
             ];
             exampleRulesData.forEach(addAndFillRuleForm);
-            log("Screenshot example visually loaded with specific rule forms.", "info");
+            log("Supported formal one-step example loaded.", "info");
         }
         
         document.addEventListener('DOMContentLoaded', () => {
