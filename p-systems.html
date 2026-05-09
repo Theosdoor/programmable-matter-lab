@@ -76,6 +76,7 @@
                 <div id="simulation-status" class="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700 min-h-[50px]">
                     Current Step: 0. System not loaded.
                 </div>
+                <div id="branch-choices" class="space-y-2"></div>
                 <div id="membranes-display" class="space-y-3 max-h-80 overflow-y-auto border p-2 rounded-md bg-gray-50">
                     <!-- Membrane states will be rendered here by JavaScript -->
                 </div>
@@ -93,16 +94,24 @@
                 <!-- Log messages will appear here -->
             </div>
         </div>
+        <div class="mt-6 p-4 bg-gray-50 rounded-md border text-sm text-gray-600">
+            <h3 class="text-lg font-semibold text-gray-600 mb-2">Model assumptions</h3>
+            <p>This explorer computes exact one-step maximally parallel branches for the rule syntax shown on this page. Each step may produce several successor configurations; choose one branch to continue the trace.</p>
+        </div>
     </div>
 
     <script src="membrane-editor.js"></script>
+    <script src="formal-step.js"></script>
     <script>
         // --- Globals ---
         let psystem = null; 
         let initialPsystemState = null; 
         let currentStep = 0;
         const MAX_RUN_STEPS = 10;
+        const MAX_RULE_APPLICATIONS_PER_BRANCH_RULE = 200;
+        const MAX_BRANCH_SEARCH_SPACE = 5000;
         let nextMembraneId = 1;
+        let branchComputationMessage = null;
 
         // --- DOM Elements ---
         const addMembraneButton = document.getElementById('add-membrane-btn');
@@ -112,6 +121,7 @@
         const runButton = document.getElementById('run-simulation');
         const resetButton = document.getElementById('reset-simulation');
         const statusDisplay = document.getElementById('simulation-status');
+        const branchChoicesDisplay = document.getElementById('branch-choices');
         const membranesDisplay = document.getElementById('membranes-display'); 
         const environmentDisplay = document.getElementById('environment-display');
         const logOutput = document.getElementById('log-output');
@@ -129,7 +139,7 @@
         });
 
         loadButton.addEventListener('click', buildPsystemFromUIAndLoad);
-        stepButton.addEventListener('click', () => executeStep(true));
+        stepButton.addEventListener('click', renderCurrentBranches);
         runButton.addEventListener('click', runSimulation);
         resetButton.addEventListener('click', resetVisualSimulation);
 
@@ -390,6 +400,7 @@
             };
 
             currentStep = 0;
+            clearBranchChoices();
             updateSimulationDisplay();
             enableButtons(true);
             logMessage('P-System loaded from visual editor.');
@@ -422,6 +433,269 @@
             for (const [obj, count] of objectsToAdd) {
                 targetMap.set(obj, (targetMap.get(obj) || 0) + count);
             }
+        }
+
+        function clearBranchChoices() {
+            if (branchChoicesDisplay) branchChoicesDisplay.replaceChildren();
+        }
+
+        function showBranchMessage(message, className = 'text-sm text-gray-500') {
+            clearBranchChoices();
+            if (!branchChoicesDisplay) return;
+
+            const messageElement = document.createElement('p');
+            messageElement.className = className;
+            messageElement.textContent = message;
+            branchChoicesDisplay.appendChild(messageElement);
+        }
+
+        function getFormalPsystemRules() {
+            if (!psystem || !psystem.rules || !psystem.membranes) return [];
+
+            return psystem.rules
+                .filter(rule => {
+                    const membrane = psystem.membranes.get(rule.membraneId);
+                    return membrane && !membrane.dissolved;
+                })
+                .map(rule => ({
+                    id: rule.id,
+                    membraneId: rule.membraneId,
+                    resourceKey: rule.membraneId,
+                    lhs: rule.lhs,
+                    originalRuleString: rule.originalRuleString,
+                    exclusiveKey: rule.dissolves ? `dissolve:${rule.membraneId}` : ''
+                }));
+        }
+
+        function getMaxApplicationsForFormalRule(rule, resources) {
+            const resource = resources.get(rule.resourceKey);
+            if (!resource || !rule.lhs || rule.lhs.size === 0) return 0;
+
+            let maxApplications = Infinity;
+            for (const [obj, needed] of rule.lhs) {
+                if (needed <= 0) continue;
+                maxApplications = Math.min(maxApplications, Math.floor((resource.get(obj) || 0) / needed));
+            }
+
+            if (!Number.isFinite(maxApplications)) return 0;
+            return rule.exclusiveKey ? Math.min(maxApplications, 1) : maxApplications;
+        }
+
+        function validateBranchSearchSize(formalRules, resources) {
+            let estimatedSearchSpace = 1;
+
+            for (const rule of formalRules) {
+                const maxApplications = getMaxApplicationsForFormalRule(rule, resources);
+                if (maxApplications > MAX_RULE_APPLICATIONS_PER_BRANCH_RULE) {
+                    return {
+                        ok: false,
+                        message: `Exact branching stopped: rule "${rule.originalRuleString || rule.id}" can apply ${maxApplications} times. Reduce object counts below ${MAX_RULE_APPLICATIONS_PER_BRANCH_RULE} for browser-safe exact enumeration.`
+                    };
+                }
+
+                estimatedSearchSpace *= (maxApplications + 1);
+                if (estimatedSearchSpace > MAX_BRANCH_SEARCH_SPACE) {
+                    return {
+                        ok: false,
+                        message: `Exact branching stopped: this configuration has too many possible rule-count combinations for the browser limit (${MAX_BRANCH_SEARCH_SPACE}). Reduce object counts or rules.`
+                    };
+                }
+            }
+
+            return { ok: true, message: '' };
+        }
+
+        function clonePsystemState(source) {
+            return {
+                membranes: new Map(Array.from(source.membranes.entries()).map(([id, mem]) => [id, {
+                    ...mem,
+                    initialObjects: new Map(mem.initialObjects || []),
+                    objects: new Map(mem.objects || [])
+                }])),
+                rules: source.rules,
+                environmentObjects: new Map(source.environmentObjects || [])
+            };
+        }
+
+        function applyRuleMultisetToClone(ruleCounts) {
+            const next = clonePsystemState(psystem);
+            const membraneOutputs = new Map();
+            const environmentOutputs = new Map();
+            const membranesToDissolve = new Set();
+            let invalidBranch = false;
+
+            ruleCounts.forEach((count, ruleId) => {
+                if (invalidBranch) return;
+                const rule = next.rules.find(candidate => candidate.id === ruleId);
+                if (!rule) return;
+
+                const membrane = next.membranes.get(rule.membraneId);
+                if (!membrane || membrane.dissolved) return;
+
+                for (let i = 0; i < count; i += 1) {
+                    if (!subtractObjects(membrane.objects, rule.lhs)) {
+                        invalidBranch = true;
+                        return;
+                    }
+
+                    rule.rhsProducts.forEach(prod => {
+                        const productMultiset = new Map([[prod.obj, prod.count]]);
+                        if (prod.target === 'here') {
+                            addObjects(membrane.objects, productMultiset);
+                        } else if (prod.target === 'out') {
+                            if (membrane.parentId) {
+                                if (!membraneOutputs.has(membrane.parentId)) membraneOutputs.set(membrane.parentId, new Map());
+                                addObjects(membraneOutputs.get(membrane.parentId), productMultiset);
+                            } else {
+                                addObjects(environmentOutputs, productMultiset);
+                            }
+                        } else if (prod.target === 'out@' && prod.targetMembrane) {
+                            if (next.membranes.has(prod.targetMembrane)) {
+                                if (!membraneOutputs.has(prod.targetMembrane)) membraneOutputs.set(prod.targetMembrane, new Map());
+                                addObjects(membraneOutputs.get(prod.targetMembrane), productMultiset);
+                            } else {
+                                logMessage(`Warning: Target membrane ${prod.targetMembrane} for output not found.`, 'warn');
+                            }
+                        }
+                    });
+
+                    if (rule.dissolves) membranesToDissolve.add(rule.membraneId);
+                }
+            });
+
+            if (invalidBranch) return null;
+
+            membraneOutputs.forEach((objectsToAdd, targetMemId) => {
+                const targetMem = next.membranes.get(targetMemId);
+                if (targetMem && !targetMem.dissolved) addObjects(targetMem.objects, objectsToAdd);
+            });
+
+            if (!next.environmentObjects) next.environmentObjects = new Map();
+            addObjects(next.environmentObjects, environmentOutputs);
+
+            membranesToDissolve.forEach(memIdToDissolve => {
+                const membraneToDissolve = next.membranes.get(memIdToDissolve);
+                if (!membraneToDissolve || membraneToDissolve.dissolved) return;
+
+                if (!membraneToDissolve.parentId) {
+                    addObjects(next.environmentObjects, membraneToDissolve.objects);
+                    next.membranes.forEach(child => {
+                        if (child.parentId === membraneToDissolve.id) child.parentId = null;
+                    });
+                } else {
+                    const parentMem = next.membranes.get(membraneToDissolve.parentId);
+                    if (parentMem && !parentMem.dissolved) {
+                        addObjects(parentMem.objects, membraneToDissolve.objects);
+                        next.membranes.forEach(child => {
+                            if (child.parentId === membraneToDissolve.id) child.parentId = parentMem.id;
+                        });
+                    } else {
+                        addObjects(next.environmentObjects, membraneToDissolve.objects);
+                        next.membranes.forEach(child => {
+                            if (child.parentId === membraneToDissolve.id) child.parentId = null;
+                        });
+                    }
+                }
+
+                membraneToDissolve.objects.clear();
+                membraneToDissolve.dissolved = true;
+            });
+
+            return next;
+        }
+
+        function computePsystemBranches() {
+            branchComputationMessage = null;
+            if (!psystem || !psystem.membranes || psystem.membranes.size === 0) {
+                logMessage('System not loaded or empty. Cannot compute branches.', 'error');
+                return [];
+            }
+
+            if (!window.FormalStep) {
+                logMessage('Formal one-step branching engine failed to load.', 'error');
+                return [];
+            }
+
+            const formalRules = getFormalPsystemRules();
+            const resources = new Map();
+            psystem.membranes.forEach(mem => {
+                if (!mem.dissolved) resources.set(mem.id, new Map(mem.objects || []));
+            });
+
+            const searchSize = validateBranchSearchSize(formalRules, resources);
+            if (!searchSize.ok) {
+                branchComputationMessage = searchSize.message;
+                logMessage(searchSize.message, 'warn');
+                return [];
+            }
+
+            const branches = [];
+            window.FormalStep.enumerateMaximalRuleMultisets(formalRules, resources, rule => rule.exclusiveKey)
+                .forEach(set => {
+                    const nextState = applyRuleMultisetToClone(set.counts);
+                    if (!nextState) return;
+                    branches.push({
+                        index: branches.length,
+                        counts: set.counts,
+                        nextState
+                    });
+                });
+            return branches;
+        }
+
+        function renderBranchChoices(branches) {
+            clearBranchChoices();
+            if (!branchChoicesDisplay) return;
+
+            if (!branches || branches.length === 0) {
+                showBranchMessage('No applicable maximally parallel branches. The system is stable.');
+                return;
+            }
+
+            branches.forEach(branch => {
+                const button = document.createElement('button');
+                button.className = 'w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-3 rounded-md shadow text-left transition duration-150 ease-in-out';
+
+                const parts = [];
+                branch.counts.forEach((count, ruleId) => {
+                    const rule = psystem.rules.find(candidate => candidate.id === ruleId);
+                    if (!rule) return;
+                    parts.push(`${rule.originalRuleString || rule.id} x ${count} in ${rule.membraneId}`);
+                });
+                button.textContent = `Branch ${branch.index + 1}: ${parts.join('; ')}`;
+
+                button.addEventListener('click', () => {
+                    psystem = branch.nextState;
+                    currentStep += 1;
+                    clearBranchChoices();
+                    updateSimulationDisplay();
+                    logMessage(`Selected branch ${branch.index + 1}.`);
+                });
+
+                branchChoicesDisplay.appendChild(button);
+            });
+        }
+
+        function renderCurrentBranches() {
+            if (!psystem || !psystem.membranes || psystem.membranes.size === 0) {
+                logMessage('System not loaded or empty. Cannot compute branches.', 'error');
+                showBranchMessage('Load a P-System before computing branches.', 'text-sm text-red-600');
+                return;
+            }
+
+            if (!window.FormalStep) {
+                logMessage('Formal one-step branching engine failed to load.', 'error');
+                showBranchMessage('Formal one-step branching engine failed to load.', 'text-sm text-red-600');
+                return;
+            }
+
+            const branches = computePsystemBranches();
+            if (branchComputationMessage) {
+                showBranchMessage(branchComputationMessage, 'text-sm text-yellow-600');
+                return;
+            }
+            renderBranchChoices(branches);
+            if (branches.length > 0) logMessage(`Found ${branches.length} maximally parallel branch(es) for step ${currentStep + 1}.`);
         }
         
         function executeStep(manualStep = false) {
@@ -642,6 +916,7 @@
             psystem = null; 
             initialPsystemState = null; 
             currentStep = 0;
+            clearBranchChoices();
             logMessage('Visual editor reset to default system. Click "Load System" to build and simulate.');
             updateSimulationDisplay(); 
             enableButtons(false); 
@@ -683,13 +958,32 @@
                     
                     memDiv.style.marginLeft = `${level * 15}px`; 
                     
-                    let objectsStr = "<em>empty</em>";
                     const currentObjects = psystem.membranes.get(membrane.id)?.objects; 
-                    if (currentObjects && currentObjects.size > 0) {
-                         objectsStr = Array.from(currentObjects.entries()).filter(([, count]) => count > 0)
-                                         .map(([obj, count]) => `<span class="object-tag">${obj}:${count}</span>`).join(' ');
+                    const title = document.createElement('strong');
+                    title.className = 'text-md';
+                    title.textContent = `${membrane.label || membrane.id} ${membrane.dissolved ? '(Dissolved)' : ''}`;
+
+                    const objectsDiv = document.createElement('div');
+                    objectsDiv.className = 'mt-1 text-xs';
+                    const visibleObjects = currentObjects
+                        ? Array.from(currentObjects.entries()).filter(([, count]) => count > 0)
+                        : [];
+                    if (visibleObjects.length > 0) {
+                        visibleObjects.forEach(([obj, count]) => {
+                            const tag = document.createElement('span');
+                            tag.className = 'object-tag';
+                            tag.textContent = `${obj}:${count}`;
+                            objectsDiv.appendChild(tag);
+                            objectsDiv.appendChild(document.createTextNode(' '));
+                        });
+                    } else {
+                        const empty = document.createElement('em');
+                        empty.textContent = 'empty';
+                        objectsDiv.appendChild(empty);
                     }
-                    memDiv.innerHTML = `<strong class="text-md">${membrane.label||membrane.id} ${membrane.dissolved?'(Dissolved)':''}</strong><div class="mt-1 text-xs">${objectsStr||"<em>empty</em>"}</div>`;
+
+                    memDiv.appendChild(title);
+                    memDiv.appendChild(objectsDiv);
                     
                     const childrenContainer = document.createElement('div');
                     childrenContainer.classList.add('ml-2', 'mt-1'); 
@@ -713,25 +1007,41 @@
                     }
                 });
             } else {
-                 membranesDisplay.innerHTML = "<em>No P-System loaded.</em>";
+                 const empty = document.createElement('em');
+                 empty.textContent = 'No P-System loaded.';
+                 membranesDisplay.replaceChildren(empty);
             }
 
             if (environmentDisplay) {
-                environmentDisplay.innerHTML = ''; 
+                environmentDisplay.replaceChildren(); 
                 if (psystem && psystem.environmentObjects && psystem.environmentObjects.size > 0) {
-                    const objectsStr = Array.from(psystem.environmentObjects.entries())
-                        .filter(([, count]) => count > 0) 
-                        .map(([obj, count]) => `<span class="object-tag">${obj}:${count}</span>`).join(' ');
-                    environmentDisplay.innerHTML = objectsStr;
+                    const visibleObjects = Array.from(psystem.environmentObjects.entries())
+                        .filter(([, count]) => count > 0);
+                    if (visibleObjects.length > 0) {
+                        visibleObjects.forEach(([obj, count]) => {
+                            const tag = document.createElement('span');
+                            tag.className = 'object-tag';
+                            tag.textContent = `${obj}:${count}`;
+                            environmentDisplay.appendChild(tag);
+                            environmentDisplay.appendChild(document.createTextNode(' '));
+                        });
+                    } else {
+                        const empty = document.createElement('em');
+                        empty.textContent = 'empty';
+                        environmentDisplay.appendChild(empty);
+                    }
                 } else {
-                    environmentDisplay.innerHTML = "<em>empty</em>";
+                    const empty = document.createElement('em');
+                    empty.textContent = 'empty';
+                    environmentDisplay.appendChild(empty);
                 }
             }
         }
         
         function enableButtons(systemIsLoaded) {
             stepButton.disabled = !systemIsLoaded;
-            runButton.disabled = !systemIsLoaded;
+            runButton.textContent = 'Branching mode';
+            runButton.disabled = true;
             resetButton.disabled = false; 
         }
 
