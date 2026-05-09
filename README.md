@@ -8,7 +8,7 @@ A collection of interactive browser tools for simulating bio-inspired computatio
 
 ## Tools
 
-### Active Membranes Analyser
+### Active Membranes Analyser [!temporarily offline]
 Define a P-system with active membranes, add rules of types (a)–(f), and find all **maximally parallel sets** of applicable rules — the core computational step in membrane computing.
 
 Supported rule types:
