@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>active membrane parser smoke tests</title>
+<script src="../active-membrane-parser.js"></script>
+<body>
+<script>
+  function assert(condition, message) {
+    if (!condition) throw new Error(message);
+  }
+
+  function countOf(multiset, object) {
+    return multiset.get(object) || 0;
+  }
+
+  const rows = window.ActiveMembraneParser.parseRulesText(`
+# Figure-style comments are ignored
+[2 a -> b c^2]2^0
+a [5]^- -> [5 b]^+
+[7 a]^+ -> [7]^- a
+[4 x]^0 -> lambda
+[1 a]^0 -> [1 b]^+ [1 c]^-
+[9 [4]^- [5]^+]^0 -> [9 [4]^0]^0 [9 [5]^0]^0
+broken rule line
+`);
+
+  assert(rows.length === 7, 'comments and blank lines should not create parser rows');
+  assert(rows[0].id === 'L3', 'line IDs should use source line numbers');
+  assert(rows[0].type === 'a', 'evolution rule should parse as type a');
+  assert(countOf(rows[0].rule.rhs.products, 'c') === 2, 'c^2 should parse as two c objects');
+  assert(rows[1].type === 'b', 'send-in rule should parse as type b');
+  assert(rows[2].type === 'c', 'send-out rule should parse as type c');
+  assert(rows[3].type === 'd', 'dissolution rule should parse as type d');
+  assert(rows[3].normalized.includes('lambda'), 'empty multiset should normalize to lambda');
+  assert(rows[4].type === 'e', 'elementary division should parse as type e');
+  assert(['pass', 'blocked'].includes(rows[4].status), 'elementary division should parse or be explicitly blocked');
+  assert(rows[5].type === 'f', 'non-elementary division should parse as type f');
+  assert(rows[6].status === 'fail', 'malformed input should fail');
+  assert(rows[6].diagnostic.includes('Line 9'), 'failure should include line number');
+
+  document.body.textContent = 'active membrane parser smoke tests passed';
+</script>

@@ -8,7 +8,7 @@ A collection of interactive browser tools for simulating bio-inspired computatio
 
 ## Tools
 
-### Active Membranes Analyser [!temporarily offline]
+### Active Membranes Analyser
 Define a P-system with active membranes, add rules of types (a)–(f), and find all **maximally parallel sets** of applicable rules — the core computational step in membrane computing.
 
 Supported rule types:
@@ -27,7 +27,7 @@ Simulate **connectivity-preserving shape transformations** in robot swarms on a 
 
 ## Formal Coverage Notes
 
-- Active Membranes Analyser: exact one-step maximally parallel analysis for supported rule types (a)-(d). Division rules (e)-(f) are blocked until full structural semantics are implemented.
+- Active Membranes Analyser: exact one-step maximally parallel analysis for supported rule types (a)-(d) and non-elementary division (f). Elementary division (e) is blocked until its full structural semantics are implemented.
 - P-System Visual Simulator: exact one-step branching for the page's rewriting-rule syntax. Users choose a successor branch to continue a trace.
 - Robot Swarm Transformer: validates interactive pivot rotations and connected initial shapes, but does not compute an automatic transformation sequence.
 
