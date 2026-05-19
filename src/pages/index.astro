@@ -2,7 +2,7 @@
 import '../styles/global.css';
 ---
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-base-url={import.meta.env.BASE_URL}>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -638,11 +638,14 @@ import '../styles/global.css';
   }
 
   function openTool(src, toolId) {
+    const rawBaseUrl = html.dataset.baseUrl || '/';
+    const baseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl : rawBaseUrl + '/';
+    const toolSrc = new URL(src, window.location.origin + baseUrl).pathname;
     animationEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     document.getElementById('landing').style.display = 'none';
     document.getElementById('tool-view').classList.add('active');
-    document.getElementById('tool-frame').src = src;
+    document.getElementById('tool-frame').src = toolSrc;
     setActiveTab(toolId);
   }
 

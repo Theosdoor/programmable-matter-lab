@@ -16,7 +16,7 @@ npm run build
 npm run preview
 ```
 
-Astro is the build system. Edit `src/pages/*.astro`, `src/styles/global.css`, and browser scripts in `public/`. The old root `.html`/`.js` files are retained as migration source/reference material unless explicitly cleaned up.
+Astro is the build system. Edit `src/pages/*.astro`, `src/styles/global.css`, and browser scripts in `public/`. Legacy root `.html`/`.js` files have been removed; `public/*.html` files are compatibility redirects for old URLs.
 
 ## Smoke Tests
 
@@ -25,6 +25,7 @@ The repo has browser-based smoke tests under `public/tests/` so they are include
 ```sh
 # http://localhost:4321/programmable-matter-lab/tests/formal-step-smoke.html
 # http://localhost:4321/programmable-matter-lab/tests/active-membrane-page-smoke.html
+# http://localhost:4321/programmable-matter-lab/tests/hub-routing-smoke.html
 ```
 
 Each smoke test writes a `... passed` message to the page or throws an error in the browser console. There is no CLI test runner unless one is added separately.
@@ -62,7 +63,7 @@ Each smoke test writes a `... passed` message to the page or throws an error in 
 
 **Canvas animation** (`src/pages/index.astro`): DNA double helix drawn on `<canvas>` using `requestAnimationFrame`. Reads colours from CSS variables at runtime. Three helices at x-fractions `[0.07, 0.93, 0.5]`.
 
-**Robot swarms shareable state** (`robot-swarms.html`): Grid state serialised into URL query params for link sharing.
+**Robot swarms shareable state** (`src/pages/robot-swarms.astro`): Grid state serialised into URL query params for link sharing.
 
 ## Deployment
 

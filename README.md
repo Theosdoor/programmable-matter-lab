@@ -71,6 +71,7 @@ Run the dev server or preview server and open the smoke-test pages in `public/te
 npm run dev
 # http://localhost:4321/programmable-matter-lab/tests/formal-step-smoke.html
 # http://localhost:4321/programmable-matter-lab/tests/active-membrane-analysis-smoke.html
+# http://localhost:4321/programmable-matter-lab/tests/hub-routing-smoke.html
 ```
 
 Tests report a `... passed` message on the page or throw in the browser console. There is currently no package-managed CLI test runner.

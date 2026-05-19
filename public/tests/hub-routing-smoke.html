@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>hub routing smoke test</title>
+<body>
+<iframe id="hub" src="/programmable-matter-lab" style="width: 1200px; height: 900px;"></iframe>
+<script>
+  function assert(condition, message) {
+    if (!condition) throw new Error(message);
+  }
+
+  function waitForFrameLoad(frame) {
+    return new Promise(resolve => {
+      frame.addEventListener('load', resolve, { once: true });
+    });
+  }
+
+  (async function () {
+    const hub = document.getElementById('hub');
+    await waitForFrameLoad(hub);
+
+    hub.contentWindow.openTool('active-membranes/', 'membranes');
+    const tool = hub.contentDocument.getElementById('tool-frame');
+    await waitForFrameLoad(tool);
+
+    assert(
+      tool.contentWindow.location.pathname === '/programmable-matter-lab/active-membranes/',
+      `tool iframe should include Astro base path, got ${tool.contentWindow.location.pathname}`
+    );
+    assert(
+      tool.contentDocument.title === 'Active Membranes Notation Workbench',
+      `tool iframe should load the active membranes page, got ${tool.contentDocument.title}`
+    );
+
+    document.body.textContent = 'hub routing smoke test passed';
+  }());
+</script>
