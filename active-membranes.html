@@ -3,91 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P-System Maximally Parallel Analyzer</title>
+    <title>Active Membranes Notation Workbench</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="theme.css">
     <script src="theme-init.js"></script>
     <style>
-        body { font-family: 'IBM Plex Mono', monospace; background-color: var(--bg); }
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background:
+                linear-gradient(90deg, color-mix(in srgb, var(--accent-g) 16%, transparent) 1px, transparent 1px),
+                linear-gradient(180deg, color-mix(in srgb, var(--accent-a) 12%, transparent) 1px, transparent 1px),
+                var(--bg);
+            background-size: 44px 44px;
+            color: var(--text);
+        }
 
-        /* Page-specific label / result / rule styles */
-        .psystem-input-label { font-weight: 600; color: #374151; margin-bottom: 0.25rem; display: block; }
-        .result-item { background-color: #f9fafb; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; margin-bottom: 0.5rem; }
-        .rule-tag { background-color: #e0e7ff; color: #4338ca; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.8em; margin-right: 0.25rem; margin-bottom: 0.25rem; display: inline-block; font-family: monospace; }
+        .workbench-shell {
+            max-width: 1280px;
+            width: 100%;
+            margin: 0 auto;
+            background: color-mix(in srgb, var(--surface) 94%, transparent);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+            overflow: hidden;
+        }
+
+        .workbench-header {
+            display: grid;
+            gap: 1.25rem;
+            grid-template-columns: minmax(0, 1fr);
+            padding: clamp(1.5rem, 4vw, 3rem);
+            border-bottom: 1px solid var(--border);
+            background:
+                linear-gradient(135deg, color-mix(in srgb, var(--accent-a) 20%, transparent), transparent 42%),
+                linear-gradient(45deg, transparent, color-mix(in srgb, var(--accent-t) 14%, transparent));
+        }
+
+        .eyebrow {
+            color: var(--accent-c);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-transform: uppercase;
+        }
+
+        .workbench-title {
+            color: var(--text);
+            font-size: clamp(2rem, 5vw, 4.4rem);
+            font-weight: 800;
+            line-height: 0.95;
+            max-width: 12ch;
+        }
+
+        .workbench-subtitle {
+            color: var(--text-sub);
+            font-size: 1rem;
+            line-height: 1.7;
+            max-width: 68ch;
+        }
+
+        .status-strip {
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+
+        .status-tile {
+            border-left: 3px solid var(--accent-a);
+            background: var(--surface-2);
+            padding: 0.85rem 1rem;
+        }
+
+        .status-tile strong {
+            color: var(--text);
+            display: block;
+            font-size: 1.05rem;
+        }
+
+        .status-tile span {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+
+        .workbench-main {
+            display: grid;
+            gap: 1rem;
+            padding: clamp(1rem, 3vw, 2rem);
+        }
+
+        .section-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            min-width: 0;
+            padding: 1rem;
+        }
+
+        .membrane-panel {
+            overflow: hidden;
+        }
+
+        #visual-editor-area {
+            height: clamp(34rem, 68vh, 46rem);
+            max-width: 100%;
+            overflow: auto;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .section-kicker {
+            color: var(--accent-g);
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+        }
+
+        .section-title {
+            color: var(--text);
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+
+        .psystem-input-label {
+            color: var(--text);
+            display: block;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .copy-note {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            line-height: 1.6;
+        }
+
+        .definition-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .definition-card {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-sub);
+            padding: 0.9rem;
+        }
+
+        .definition-card strong {
+            color: var(--text);
+            display: block;
+            margin-bottom: 0.35rem;
+        }
+
+        .definition-card code {
+            color: var(--accent-c);
+            display: block;
+            font-size: 0.78rem;
+            white-space: normal;
+        }
+
+        .rules-workbench-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(0, 0.92fr) minmax(380px, 1.08fr);
+            min-width: 0;
+        }
+
+        #rule-examples-display,
+        #rules-textarea,
+        #log-output {
+            background: color-mix(in srgb, var(--bg) 80%, var(--surface));
+            border-color: var(--border);
+            color: var(--text);
+        }
+
+        #rules-textarea {
+            min-height: 27rem;
+            resize: vertical;
+        }
+
+        .parser-table {
+            min-width: 100%;
+            color: var(--text);
+            font-size: 0.85rem;
+        }
+
+        .parser-table th {
+            background: var(--surface-2);
+            color: var(--text-sub);
+            font-weight: 800;
+            padding: 0.7rem 0.9rem;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .parser-table td {
+            border-top: 1px solid var(--border);
+            padding: 0.7rem 0.9rem;
+            vertical-align: top;
+        }
+
+        .source-cell {
+            background: color-mix(in srgb, var(--bg) 70%, var(--surface));
+            color: var(--text-sub);
+            max-width: 34rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .status-badge {
+            border-radius: 999px;
+            display: inline-flex;
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 0.18rem 0.55rem;
+        }
+
+        .status-pass { background: color-mix(in srgb, var(--accent-a) 18%, transparent); color: var(--accent-a); }
+        .status-fail { background: color-mix(in srgb, var(--accent-t) 18%, transparent); color: var(--accent-t); }
+        .status-blocked { background: rgba(255, 209, 102, 0.18); color: var(--accent-c); }
+
+        .result-item {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 0.65rem;
+            padding: 0.85rem;
+        }
+
+        .rule-tag {
+            background: color-mix(in srgb, var(--accent-g) 16%, transparent);
+            border: 1px solid color-mix(in srgb, var(--accent-g) 36%, transparent);
+            color: var(--text);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-right: 0.25rem;
+            margin-bottom: 0.25rem;
+            display: inline-block;
+            font-family: monospace;
+        }
 
         /* Membrane editor — inputs inside draggable cards */
         .membrane-draggable input[type="text"],
         .membrane-draggable select { width: 100%; padding: 6px; margin-top: 4px; margin-bottom: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9em; }
         .membrane-draggable .input-group { margin-bottom: 8px; }
-        .membrane-draggable label { font-size: 0.8em; font-weight: 500; color: #4b5563; display: block; margin-bottom: 2px; }
+        .membrane-draggable label { font-size: 0.8em; font-weight: 500; color: var(--text-sub); display: block; margin-bottom: 2px; }
         .charge-select { font-family: monospace; }
 
-        /* Rule blocks */
-        .rule-block { background-color: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .rule-block h4 { font-size: 1.0rem; font-weight: 600; color: #1f2937; margin-bottom: 0.75rem; }
-        .rule-input-group { margin-bottom: 0.75rem; }
-        .rule-input-group label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
-        .rule-input-group input[type="text"],
-        .rule-input-group select,
-        .rule-input-group textarea { width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem; font-size: 0.875rem; background-color: #f9fafb; }
-        .rule-input-group textarea { min-height: 40px; font-family: monospace; }
-        .remove-rule-btn { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
-        .remove-rule-btn:hover { background-color: #fca5a5; color: #991b1b; }
-        .add-rule-type-btn { background-color: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; margin-right: 0.5rem; margin-bottom: 0.5rem; }
-        .add-rule-type-btn:hover { background-color: #c7d2fe; }
-        .rule-block .field-note { font-size: 0.75rem; color: #6b7280; margin-top: -0.5rem; margin-bottom: 0.5rem; }
+        @media (max-width: 960px) {
+            .definition-grid,
+            .rules-workbench-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .membrane-panel,
+            #visual-editor-area {
+                height: 32rem;
+            }
+        }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <div class="container mx-auto max-w-6xl bg-white shadow-xl rounded-lg p-6 md:p-8">
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">P-System Maximally Parallel Analyzer</h1>
-            <p class="text-gray-600 mt-2">Define your P-System with active membranes and find all maximally parallel sets of applicable rules.</p>
+<body class="p-3 md:p-6">
+    <div class="workbench-shell">
+        <header class="workbench-header">
+            <div>
+                <p class="eyebrow">Active membranes / one-step semantics</p>
+                <h1 class="workbench-title">Notation Workbench</h1>
+                <p class="workbench-subtitle mt-4">Edit the membrane tree, write rules in standard active-membrane notation, then enumerate the exact maximally parallel rule multisets for the next transition.</p>
+            </div>
+            <div class="status-strip">
+                <div class="status-tile"><strong>(a)-(d), (f)</strong><span>implemented rule families</span></div>
+                <div class="status-tile"><strong>Line IDs</strong><span>parser output drives results</span></div>
+                <div class="status-tile"><strong>One step</strong><span>maximally parallel enumeration</span></div>
+            </div>
         </header>
 
-        <div class="mb-8">
-            <div class="flex justify-between items-center mb-2">
-                <label class="psystem-input-label">Membrane Structure & Initial State (Visual):</label>
+        <main class="workbench-main">
+        <section class="section-panel membrane-panel">
+            <div class="section-header">
+                <div>
+                    <span class="section-kicker">Structure</span>
+                    <h2 class="section-title">Membrane tree and initial state</h2>
+                </div>
                 <button id="add-membrane-btn" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-md text-sm shadow">Add Membrane</button>
             </div>
-            <div id="visual-editor-area" class="editor-area min-h-48 md:h-96"></div>
-        </div>
+            <div id="visual-editor-area" class="editor-area"></div>
+        </section>
 
-        <section class="mb-8">
-          <h2 class="text-2xl font-semibold text-gray-700 mb-3">Rule notation</h2>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="p-4 bg-gray-50 rounded-md border">
-              <h3 class="text-lg font-semibold text-gray-700 mb-2">Accepted patterns</h3>
-              <pre class="text-xs whitespace-pre-wrap bg-white p-3 border rounded-md overflow-auto" id="rule-examples-display">(a) Evolution:
-[h a -> v]h^0
-
-(b) Send-in:
-a [h]^- -> [h b]^+
-
-(c) Send-out:
-[h a]^+ -> [h]^- b
-
-(d) Dissolution:
-[h a]^0 -> lambda
-
-(e) Elementary division:
-[h a]^0 -> [h b]^+ [h c]^-
-
-(f) Non-elementary division:
-[h [g1]^+ [g2]^-]^0 -> [h [g1]^0]^0 [h [g2]^0]^0</pre>
-            </div>
+        <section class="section-panel">
+          <div class="section-header">
             <div>
-              <label for="rules-textarea" class="psystem-input-label">Rules, one per line:</label>
-              <textarea id="rules-textarea" class="w-full h-72 p-3 border rounded-md bg-gray-50 font-mono text-sm" spellcheck="false"></textarea>
-              <p class="text-xs text-gray-500 mt-2">Blank lines and lines starting with # are ignored. Use a^2 for repeated objects and lambda for the empty multiset.</p>
+              <span class="section-kicker">Rule definition</span>
+              <h2 class="section-title">Accepted active-membrane notation</h2>
+            </div>
+          </div>
+          <div class="definition-grid">
+            <div class="definition-card">
+              <strong>Object rules</strong>
+              <code>[h a -> v]h^0</code>
+              <code>a [h]^- -> [h b]^+</code>
+              <code>[h a]^+ -> [h]^- b</code>
+            </div>
+            <div class="definition-card">
+              <strong>Structural rules</strong>
+              <code>[h a]^0 -> lambda</code>
+              <code>[h a]^0 -> [h b]^+ [h c]^-</code>
+            </div>
+            <div class="definition-card">
+              <strong>Division over children</strong>
+              <code>[h [g1]^+ [g2]^-]^0 -> [h [g1]^0]^0 [h [g2]^0]^0</code>
+              <p class="copy-note mt-2">Elementary division parses but is blocked in one-step analysis for now.</p>
             </div>
           </div>
         </section>
 
-        <section class="mb-8">
-          <h2 class="text-2xl font-semibold text-gray-700 mb-3">Parse results</h2>
-          <div id="parse-results-container" class="overflow-x-auto border rounded-md bg-white">
-            <p class="text-gray-500 p-3">No rules parsed yet.</p>
+        <section class="section-panel">
+          <div class="section-header">
+            <div>
+              <span class="section-kicker">Rules</span>
+              <h2 class="section-title">Rule textbox and parser validity</h2>
+            </div>
+          </div>
+          <div class="rules-workbench-grid">
+            <div>
+              <label for="rules-textarea" class="psystem-input-label">Rules, one per line</label>
+              <textarea id="rules-textarea" class="w-full p-3 border rounded-md font-mono text-sm" spellcheck="false"></textarea>
+              <p class="copy-note mt-2">Blank lines and lines starting with # are ignored. Use a^2 for repeated objects and lambda for the empty multiset.</p>
+            </div>
+            <div>
+              <label class="psystem-input-label">Parser validity</label>
+              <div id="parse-results-container" class="overflow-x-auto border rounded-md">
+                <p class="copy-note p-3">No rules parsed yet.</p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -97,26 +358,42 @@ a [h]^- -> [h b]^+
             </button>
         </div>
 
-        <div id="results-container" class="mb-8">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Analysis Results:</h2>
+        <section id="results-container" class="section-panel">
+            <div class="section-header">
+                <div>
+                    <span class="section-kicker">Enumerator</span>
+                    <h2 class="section-title">Analysis results</h2>
+                </div>
+            </div>
             <div id="error-display" class="mb-4"></div>
             <div id="maximally-parallel-sets-display" class="space-y-3">
-                <p class="text-gray-500">No analysis performed yet.</p>
+                <p class="copy-note">No analysis performed yet.</p>
             </div>
-        </div>
+        </section>
         
-        <div class="mt-6 p-4 bg-gray-50 rounded-md border">
-            <h3 class="text-lg font-semibold text-gray-600 mb-2">Log</h3>
-            <div id="log-output" class="h-48 overflow-y-auto text-xs bg-white p-3 border rounded-md"></div>
-        </div>
+        <section class="section-panel">
+            <div class="section-header">
+                <div>
+                    <span class="section-kicker">Trace</span>
+                    <h2 class="section-title">Log</h2>
+                </div>
+            </div>
+            <div id="log-output" class="h-48 overflow-y-auto text-xs p-3 border rounded-md"></div>
+        </section>
 
-        <div class="mt-6 p-4 bg-indigo-50 rounded-md border border-indigo-100">
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Model assumptions</h3>
-            <p class="text-sm text-gray-700">
+        <section class="section-panel">
+            <div class="section-header">
+                <div>
+                    <span class="section-kicker">Scope</span>
+                    <h2 class="section-title">Model assumptions</h2>
+                </div>
+            </div>
+            <p class="copy-note">
                 Exact one-step maximally parallel analysis is implemented for rule types (a)-(d) and non-elementary division (f).
                 Elementary division (e) is blocked until its full structural semantics are implemented.
             </p>
-        </div>
+        </section>
+        </main>
     </div>
 
     <script src="membrane-editor.js"></script>
@@ -268,44 +545,51 @@ a [h]^- -> [h b]^+
         function renderParseTable(rows) {
             parseResultsContainer.innerHTML = '';
             if (rows.length === 0) {
-                parseResultsContainer.innerHTML = '<p class="text-gray-500 p-3">No rules defined.</p>';
+                parseResultsContainer.innerHTML = '<p class="copy-note p-3">No rules defined.</p>';
                 return;
             }
 
             const table = document.createElement('table');
-            table.className = 'min-w-full divide-y divide-gray-200 text-sm';
+            table.className = 'parser-table';
             table.innerHTML = `
-                <thead class="bg-gray-50">
+                <thead>
                     <tr>
-                        <th class="px-4 py-2 text-left font-semibold text-gray-700">ID</th>
-                        <th class="px-4 py-2 text-left font-semibold text-gray-700">Source Line</th>
-                        <th class="px-4 py-2 text-left font-semibold text-gray-700">Type</th>
-                        <th class="px-4 py-2 text-left font-semibold text-gray-700">Status</th>
-                        <th class="px-4 py-2 text-left font-semibold text-gray-700">Diagnostics</th>
+                        <th>ID</th>
+                        <th>Source Line</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Diagnostics</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200" id="parse-table-body"></tbody>
+                <tbody id="parse-table-body"></tbody>
             `;
             const tbody = table.querySelector('#parse-table-body');
 
             rows.forEach(row => {
                 const tr = document.createElement('tr');
-                let statusBadge = '';
-                if (row.status === 'pass') {
-                    statusBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Pass</span>';
-                } else if (row.status === 'fail') {
-                    statusBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Fail</span>';
-                } else {
-                    statusBadge = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">Blocked</span>';
-                }
+                const idCell = document.createElement('td');
+                idCell.textContent = row.id;
+                idCell.style.fontWeight = '800';
 
-                tr.innerHTML = `
-                    <td class="px-4 py-2 font-semibold text-gray-900">${row.id}</td>
-                    <td class="px-4 py-2 font-mono text-xs text-gray-600 bg-gray-50 max-w-xs truncate" title="${row.source}">${row.source}</td>
-                    <td class="px-4 py-2 text-gray-500">${row.rule ? row.rule.type : 'N/A'}</td>
-                    <td class="px-4 py-2">${statusBadge}</td>
-                    <td class="px-4 py-2 text-xs ${row.status === 'fail' ? 'text-red-600' : 'text-gray-500'}">${row.diagnostic || ''}</td>
-                `;
+                const sourceCell = document.createElement('td');
+                sourceCell.className = 'source-cell';
+                sourceCell.title = row.source;
+                sourceCell.textContent = row.source;
+
+                const typeCell = document.createElement('td');
+                typeCell.textContent = row.rule ? row.rule.type : 'N/A';
+
+                const statusCell = document.createElement('td');
+                const statusBadge = document.createElement('span');
+                statusBadge.className = `status-badge status-${row.status}`;
+                statusBadge.textContent = row.status === 'pass' ? 'Pass' : row.status === 'fail' ? 'Fail' : 'Blocked';
+                statusCell.appendChild(statusBadge);
+
+                const diagnosticCell = document.createElement('td');
+                diagnosticCell.className = row.status === 'fail' ? 'status-fail' : '';
+                diagnosticCell.textContent = row.diagnostic || '';
+
+                tr.append(idCell, sourceCell, typeCell, statusCell, diagnosticCell);
                 tbody.appendChild(tr);
             });
 
@@ -380,10 +664,15 @@ a [h]^- -> [h b]^+
             const analysis = window.ActiveMembraneAnalysis.analyzeOneStep(membranes, rows, { allowElementaryDivision: false });
 
             if (analysis.status === 'fail' || analysis.status === 'blocked') {
-                const errorsJoined = analysis.diagnostics.join('<br>');
                 const errorDiv = document.createElement('div');
                 errorDiv.className = 'error-message p-3 bg-red-100 border border-red-300 rounded-md';
-                errorDiv.innerHTML = `<strong>Analysis ${analysis.status.toUpperCase()}:</strong><br>${errorsJoined}`;
+                const strong = document.createElement('strong');
+                strong.textContent = `Analysis ${analysis.status.toUpperCase()}:`;
+                errorDiv.appendChild(strong);
+                analysis.diagnostics.forEach(diagnostic => {
+                    errorDiv.appendChild(document.createElement('br'));
+                    errorDiv.appendChild(document.createTextNode(diagnostic));
+                });
                 errorDisplayEl.replaceChildren(errorDiv);
                 setResultsMessage(`Analysis ${analysis.status}ed due to errors.`, 'text-red-500');
                 log(`Analysis ${analysis.status}ed with diagnostics.`, 'error');
@@ -404,13 +693,14 @@ a [h]^- -> [h b]^+
             const mem10 = createNewVisualMembrane(visualEditorArea, '10', '0', '');
             const mem9 = createNewVisualMembrane(mem10, '9', '0', '');
             const mem3 = createNewVisualMembrane(mem9, '3', '0', '');
-            createNewVisualMembrane(mem3, '1', '0', '');
-            createNewVisualMembrane(mem3, '2', '0', '');
-            const mem4 = createNewVisualMembrane(mem9, '4', '-', '');
+            createNewVisualMembrane(mem3, '1', '+', '');
+            createNewVisualMembrane(mem3, '2', '-', '');
+            const mem4 = createNewVisualMembrane(mem9, '4', '-', 'a:1');
             createNewVisualMembrane(mem4, '6', '+', '');
-            createNewVisualMembrane(mem4, '7', '-', 'a:1');
-            const mem5 = createNewVisualMembrane(mem9, '5', '+', 'b:1');
+            createNewVisualMembrane(mem4, '7', '-', '');
+            const mem5 = createNewVisualMembrane(mem9, '5', '-', '');
             createNewVisualMembrane(mem5, '8', '+', '');
+            mem9.querySelector('.membrane-objects-input').value = 'b:1';
             
             const maxIdNum = ['1','2','3','4','5','6','7','8','9','10']
                 .map(id => parseInt(id.match(/\d+/)?.[0] || '0'))

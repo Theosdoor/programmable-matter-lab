@@ -1,4 +1,5 @@
-.superpowers/
+.superpowers/*
+.playwright-mcp/*
 
 # build output
 dist/

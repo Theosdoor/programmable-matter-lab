@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>active membrane page smoke tests</title>
+<body>
+<iframe id="tool" src="../active-membranes.html" style="width: 1200px; height: 900px;"></iframe>
+<script>
+  function assert(condition, message) {
+    if (!condition) throw new Error(message);
+  }
+
+  function waitForFrameLoad(frame) {
+    return new Promise(resolve => {
+      frame.addEventListener('load', resolve, { once: true });
+    });
+  }
+
+  function nextFrame() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
+
+  (async function () {
+    const frame = document.getElementById('tool');
+    await waitForFrameLoad(frame);
+    await nextFrame();
+
+    const doc = frame.contentDocument;
+    const win = frame.contentWindow;
+    const rows = win.ActiveMembraneParser.parseRulesText(doc.getElementById('rules-textarea').value);
+    const membranes = win.parseMembraneStructureFromVisual();
+    const analysis = win.ActiveMembraneAnalysis.analyzeOneStep(membranes, rows, { allowElementaryDivision: false });
+
+    assert(analysis.status === 'pass', 'default Figure 2 page example should analyze successfully');
+    assert(analysis.maximalSets.some(set => {
+      return (set.counts.get('L2') || 0) === 1
+        && (set.counts.get('L3') || 0) === 1
+        && (set.counts.get('L4') || 0) === 1;
+    }), 'default Figure 2 page example should include the first-step maximal set');
+
+    document.body.textContent = 'active membrane page smoke tests passed';
+  }());
+</script>
