@@ -50,12 +50,10 @@
     ['8', membrane('8', '+', [], '5', [])]
   ]);
 
-  const rows = window.ActiveMembraneParser.parseRulesText(`
-b [5]^- -> [5 b]^+
+  const rows = window.ActiveMembraneParser.parseRulesText(`b [5]^- -> [5 b]^+
 a [7]^- -> [7 a]^+
 [3 [1]^+ [2]^-]^0 -> [3 [1]^0]^0 [3 [2]^0]^0
-[4 [6]^+ [7]^-]^- -> [4 [6]^+]^- [4 [7]^+]^-
-`);
+[4 [6]^+ [7]^-]^- -> [4 [6]^+]^- [4 [7]^+]^-`);
   const analysis = window.ActiveMembraneAnalysis.analyzeOneStep(membranes, rows);
   assert(analysis.status === 'pass', 'Figure 2 analysis should pass');
   assert(hasCounts(analysis.maximalSets, { L1: 1, L2: 1, L3: 1 }), 'expected Figure 2 first maximal set missing');
