@@ -25,7 +25,7 @@
 
 - Modify `active-membranes.html`
   - Removes rule form templates and rule-form management.
-  - Adds examples block, multiline rules textarea, parse table, and line-ID result rendering.
+  - Adds examples block, multiline rules textarea, debounced live parse table, and line-ID result rendering.
   - Keeps visual membrane editor and default Figure 2 structure.
 
 - Modify `tests/revision-examples-smoke.html`
@@ -990,6 +990,7 @@ Inside the page script, add:
 const rulesTextareaEl = document.getElementById('rules-textarea');
 const parseResultsContainerEl = document.getElementById('parse-results-container');
 let latestParsedRows = [];
+let parseDebounceTimer = null;
 
 function renderParseResults(rows) {
   latestParsedRows = rows;
@@ -1036,10 +1037,15 @@ function parseRulesFromTextarea() {
   return rows;
 }
 
-rulesTextareaEl.addEventListener('input', () => {
+function scheduleParseRules() {
   clearError();
-  parseRulesFromTextarea();
-});
+  window.clearTimeout(parseDebounceTimer);
+  parseDebounceTimer = window.setTimeout(() => {
+    parseRulesFromTextarea();
+  }, 250);
+}
+
+rulesTextareaEl.addEventListener('input', scheduleParseRules);
 ```
 
 - [ ] **Step 5: Run static smoke tests**
