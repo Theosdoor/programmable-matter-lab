@@ -26,14 +26,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Astro site
+        run: npm run build
 
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload the entire repo root — all HTML/CSS files are at the top level
-          path: '.'
+          path: dist
 
       - name: Deploy to GitHub Pages
         id: deployment

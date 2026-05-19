@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>formal-step smoke tests</title>
+<script src="../formal-step.js"></script>
+<body>
+<script>
+  function assert(condition, message) {
+    if (!condition) throw new Error(message);
+  }
+
+  function map(entries) {
+    return new Map(entries);
+  }
+
+  const rules = [
+    { id: 'r1', label: 'a -> b', membraneId: '1', lhs: map([['a', 1]]), kind: 'rewrite' },
+    { id: 'r2', label: 'a -> c', membraneId: '1', lhs: map([['a', 1]]), kind: 'rewrite' }
+  ];
+  const resources = new Map([['1', map([['a', 2]])]]);
+  const maximal = window.FormalStep.enumerateMaximalRuleMultisets(rules, resources, () => '');
+  assert(maximal.length === 3, 'two competing single-object rules over a:2 should produce three maximal count vectors');
+  assert(maximal.some(set => set.counts.get('r1') === 2), 'r1 twice branch missing');
+  assert(maximal.some(set => set.counts.get('r2') === 2), 'r2 twice branch missing');
+  assert(maximal.some(set => set.counts.get('r1') === 1 && set.counts.get('r2') === 1), 'mixed branch missing');
+
+  const exclusive = window.FormalStep.enumerateMaximalRuleMultisets(rules, resources, rule => rule.membraneId);
+  assert(exclusive.length === 2, 'exclusive membrane use should leave one branch per rule');
+
+  const stable = window.FormalStep.enumerateMaximalRuleMultisets(rules, new Map([['1', map([['z', 1]])]]), () => '');
+  assert(stable.length === 0, 'no applicable rules should produce no maximal rule multisets');
+
+  const emptyLhsMissingResource = [
+    { id: 'r3', label: 'epsilon -> marker', membraneId: 'missing', lhs: map([]), kind: 'rewrite' }
+  ];
+  const missingResource = window.FormalStep.enumerateMaximalRuleMultisets(emptyLhsMissingResource, resources, rule => rule.membraneId);
+  assert(missingResource.length === 0, 'empty-LHS exclusive rules should still require an existing resource key');
+
+  const multiExclusiveRules = [
+    { id: 'f', membraneId: 'outer', lhs: map([]), kind: 'structure', exclusiveKeys: ['outer', 'inner'] },
+    { id: 'use-inner', membraneId: 'inner', lhs: map([['token', 1]]), kind: 'rewrite', exclusiveKeys: ['inner'] }
+  ];
+  const multiExclusive = window.FormalStep.enumerateMaximalRuleMultisets(
+    multiExclusiveRules,
+    new Map([['outer', map([])], ['inner', map([['token', 1]])]]),
+    rule => rule.exclusiveKeys
+  );
+  assert(multiExclusive.length === 2, 'multi-key exclusivity should prevent structural and inner rules from co-occurring');
+
+  document.body.textContent = 'formal-step smoke tests passed';
+</script>

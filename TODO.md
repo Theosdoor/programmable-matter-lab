@@ -1,7 +1,8 @@
 # TODO.md
 
-- put pages in url so it's not always just one url
-- consider whether an Astro migration is still worth the extra build step
+- [x] put pages in url so it's not always just one url
+- [x] migrate to Astro build/deploy
+- [ ] continue shrinking page-local CSS by extracting small Astro components and Tailwind utility layouts
 
 ## active membranes SUCK rn
 - [x] make active mem rules one big textbox (also show rules in latex form as in examples?)

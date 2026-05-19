@@ -1,0 +1,82 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>active membrane analysis smoke tests</title>
+<script src="../formal-step.js"></script>
+<script src="../active-membrane-parser.js"></script>
+<script src="../active-membrane-analysis.js"></script>
+<body>
+<script>
+  function assert(condition, message) {
+    if (!condition) throw new Error(message);
+  }
+
+  function map(entries) {
+    return new Map(entries);
+  }
+
+  function membrane(id, charge, objects, parentId, childrenIds) {
+    return {
+      id,
+      label: id,
+      charge,
+      objects: map(objects || []),
+      parentId: parentId || null,
+      childrenIds: childrenIds || []
+    };
+  }
+
+  function hasCounts(sets, expected) {
+    return sets.some(set => {
+      for (const [ruleId, count] of Object.entries(expected)) {
+        if ((set.counts.get(ruleId) || 0) !== count) return false;
+      }
+      for (const [ruleId, count] of set.counts) {
+        if ((expected[ruleId] || 0) !== count) return false;
+      }
+      return true;
+    });
+  }
+
+  const membranes = new Map([
+    ['10', membrane('10', '0', [], null, ['9'])],
+    ['9', membrane('9', '0', [['b', 1]], '10', ['3', '4', '5'])],
+    ['3', membrane('3', '0', [], '9', ['1', '2'])],
+    ['1', membrane('1', '+', [], '3', [])],
+    ['2', membrane('2', '-', [], '3', [])],
+    ['4', membrane('4', '-', [['a', 1]], '9', ['6', '7'])],
+    ['6', membrane('6', '+', [], '4', [])],
+    ['7', membrane('7', '-', [], '4', [])],
+    ['5', membrane('5', '-', [], '9', ['8'])],
+    ['8', membrane('8', '+', [], '5', [])]
+  ]);
+
+  const rows = window.ActiveMembraneParser.parseRulesText(`b [5]^- -> [5 b]^+
+a [7]^- -> [7 a]^+
+[3 [1]^+ [2]^-]^0 -> [3 [1]^0]^0 [3 [2]^0]^0
+[4 [6]^+ [7]^-]^- -> [4 [6]^+]^- [4 [7]^+]^-`);
+  const analysis = window.ActiveMembraneAnalysis.analyzeOneStep(membranes, rows);
+  assert(analysis.status === 'pass', 'Figure 2 analysis should pass');
+  assert(hasCounts(analysis.maximalSets, { L1: 1, L2: 1, L3: 1 }), 'expected Figure 2 first maximal set missing');
+  assert(analysis.maximalSets.every(set => !set.counts.has('L4') || !set.counts.has('L2')), 'rules competing for membrane 7 should not co-occur');
+
+  const repeatedRows = window.ActiveMembraneParser.parseRulesText('[1 a -> b]1^0');
+  const repeatedMembranes = new Map([
+    ['1', membrane('1', '0', [['a', 3]], null, [])]
+  ]);
+  const repeated = window.ActiveMembraneAnalysis.analyzeOneStep(repeatedMembranes, repeatedRows);
+  assert(hasCounts(repeated.maximalSets, { L1: 3 }), 'evolution should count repeated applications');
+
+  const elementaryRows = window.ActiveMembraneParser.parseRulesText('[1 a]^0 -> [1 b]^+ [1 c]^-');
+  const elementaryMembranes = new Map([
+    ['1', membrane('1', '0', [['a', 1], ['z', 1]], null, [])]
+  ]);
+  const elementary = window.ActiveMembraneAnalysis.analyzeOneStep(elementaryMembranes, elementaryRows);
+  assert(['pass', 'blocked'].includes(elementary.status), 'elementary division must pass or be explicitly blocked');
+  if (elementary.status === 'blocked') {
+    assert(elementary.diagnostics[0].includes('Elementary division'), 'blocked elementary division should explain itself');
+  } else {
+    assert(hasCounts(elementary.maximalSets, { L1: 1 }), 'elementary division should be applicable once');
+  }
+
+  document.body.textContent = 'active membrane analysis smoke tests passed';
+</script>

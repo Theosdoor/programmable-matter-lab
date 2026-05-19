@@ -7,6 +7,8 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
+  site: 'https://theosdoor.github.io',
+  base: '/programmable-matter-lab',
   vite: {
     plugins: [tailwindcss()]
   },

@@ -1,6 +1,6 @@
 # Programmable Matter Lab
 
-A collection of interactive browser tools for simulating bio-inspired computation models. Built as standalone HTML pages with a shared hub, DNA-aesthetic UI, and dark/light mode.
+A collection of interactive browser tools for simulating bio-inspired computation models. Built with Astro as a static site, with Tailwind CSS, a shared hub, DNA-aesthetic UI, and dark/light mode.
 
 **Live site:** https://theosdoor.github.io/programmable-matter-lab/
 
@@ -35,42 +35,42 @@ Simulate **connectivity-preserving shape transformations** in robot swarms on a 
 
 ## Development
 
-No build step - all three tools are static HTML/CSS/JS files. Open `index.html` in a browser or serve the directory with any static server:
+Astro builds the static site to `dist/`:
 
 ```sh
-# Python
-python3 -m http.server 8000
-
-# Node (if npx is available)
-npx serve .
+npm install
+npm run dev
+npm run build
+npm run preview
 ```
 
 ### File structure
 
 ```
-index.html              Hub / landing page
-theme.css               Shared dark/light theme (loaded by all tool pages)
-theme-init.js           Early tool-page theme initialiser
-formal-step.js          Shared maximal-rule-multiset enumeration
-membrane-editor.js      Shared membrane editor DOM helpers
-active-membrane-parser.js
-active-membrane-analysis.js
-active-membranes.html   Active Membranes Analyser
-p-systems.html          P-System Visual Simulator
-robot-swarms.html       Robot Swarm Transformer
-tests/                  Browser-based smoke tests
+src/pages/index.astro              Hub / landing page
+src/pages/active-membranes.astro   Active Membranes Analyser
+src/pages/p-systems.astro          P-System Visual Simulator
+src/pages/robot-swarms.astro       Robot Swarm Transformer
+src/styles/global.css              Tailwind entrypoint and small global styles
+public/theme.css                   Shared legacy theme variables for migrated tools
+public/theme-init.js               Early tool-page theme initialiser
+public/formal-step.js              Shared maximal-rule-multiset enumeration
+public/membrane-editor.js          Shared membrane editor DOM helpers
+public/active-membrane-parser.js
+public/active-membrane-analysis.js
+public/tests/                      Browser-based smoke tests
 .github/workflows/
   deploy.yml            GitHub Pages deployment
 ```
 
 ### Smoke tests
 
-Serve the repo root and open the smoke-test pages in `tests/`:
+Run the dev server or preview server and open the smoke-test pages in `public/tests/`:
 
 ```sh
-python3 -m http.server 8000
-# http://localhost:8000/tests/formal-step-smoke.html
-# http://localhost:8000/tests/active-membrane-analysis-smoke.html
+npm run dev
+# http://localhost:4321/programmable-matter-lab/tests/formal-step-smoke.html
+# http://localhost:4321/programmable-matter-lab/tests/active-membrane-analysis-smoke.html
 ```
 
 Tests report a `... passed` message on the page or throw in the browser console. There is currently no package-managed CLI test runner.
@@ -83,7 +83,7 @@ The hub reads and writes a `pm-theme` key in `localStorage` (`"dark"` or `"light
 
 ## Deployment
 
-Pushes to `main` automatically deploy to GitHub Pages via the included workflow. No build or install step is required.
+Pushes to `main` automatically deploy to GitHub Pages via the included workflow. The workflow runs `npm ci`, `npm run build`, and uploads `dist/`.
 
 ---
 

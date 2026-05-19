@@ -1,0 +1,87 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>revision example smoke tests</title>
+<script src="../formal-step.js"></script>
+<script src="../active-membrane-parser.js"></script>
+<script src="../active-membrane-analysis.js"></script>
+<body>
+<script>
+  function assert(condition, message) {
+    if (!condition) throw new Error(message);
+  }
+
+  function map(entries) {
+    return new Map(entries);
+  }
+
+  function hasCounts(sets, expected) {
+    return sets.some(set => {
+      for (const [ruleId, count] of Object.entries(expected)) {
+        if ((set.counts.get(ruleId) || 0) !== count) return false;
+      }
+      for (const [ruleId, count] of set.counts) {
+        if ((expected[ruleId] || 0) !== count) return false;
+      }
+      return true;
+    });
+  }
+
+  const membrane = (id, charge, objects, parentId, childrenIds) => ({
+    id, label: id, charge, objects: map(objects || []), parentId: parentId || null, childrenIds: childrenIds || []
+  });
+
+  // Figure 2 First Step
+  const membranes = new Map([
+    ['10', membrane('10', '0', [], null, ['9'])],
+    ['9', membrane('9', '0', [['b', 1]], '10', ['3', '4', '5'])],
+    ['3', membrane('3', '0', [], '9', ['1', '2'])],
+    ['1', membrane('1', '+', [], '3', [])],
+    ['2', membrane('2', '-', [], '3', [])],
+    ['4', membrane('4', '-', [['a', 1]], '9', ['6', '7'])],
+    ['6', membrane('6', '+', [], '4', [])],
+    ['7', membrane('7', '-', [], '4', [])],
+    ['5', membrane('5', '-', [], '9', ['8'])],
+    ['8', membrane('8', '+', [], '5', [])]
+  ]);
+
+  const rows = window.ActiveMembraneParser.parseRulesText(`b [5]^- -> [5 b]^+
+a [7]^- -> [7 a]^+
+[3 [1]^+ [2]^-]^0 -> [3 [1]^0]^0 [3 [2]^0]^0
+[4 [6]^+ [7]^-]^- -> [4 [6]^+]^- [4 [7]^+]^-`);
+
+  const analysis = window.ActiveMembraneAnalysis.analyzeOneStep(membranes, rows);
+  assert(analysis.status === 'pass', 'Figure 2 analysis should pass');
+  assert(
+    hasCounts(analysis.maximalSets, { L1: 1, L2: 1, L3: 1 }),
+    'active membrane Figure 2 first expected maximal set should be present'
+  );
+
+  // Figure 2 Second Step
+  const membranesStep2 = new Map([
+    ['10', membrane('10', '0', [], null, ['9'])],
+    ['9', membrane('9', '0', [], '10', ['4', '5'])],
+    ['4', membrane('4', '-', [], '9', [])],
+    ['5', membrane('5', '+', [], '9', [])]
+  ]);
+  const rowsStep2 = window.ActiveMembraneParser.parseRulesText(`[9 [4]^- [5]^+]^0 -> [9 [4]^0]^0 [9 [5]^0]^0`);
+  const analysisStep2 = window.ActiveMembraneAnalysis.analyzeOneStep(membranesStep2, rowsStep2);
+  assert(analysisStep2.status === 'pass', 'Figure 2 step 2 analysis should pass');
+  assert(hasCounts(analysisStep2.maximalSets, { L1: 1 }), 'active membrane Figure 2 second expected maximal set should be present');
+
+  // P-System Initial step branching
+  const psysInitialRules = [
+    { id: 'emit-a', membraneId: '3', lhs: map([['a', 1]]) },
+    { id: 'send-x-1', membraneId: '3', lhs: map([['x', 1]]) },
+    { id: 'send-x-2', membraneId: '3', lhs: map([['x', 1]]) }
+  ];
+  const psysInitialSets = window.FormalStep.enumerateMaximalRuleMultisets(
+    psysInitialRules,
+    new Map([['3', map([['a', 1], ['x', 1]])]]),
+    () => ''
+  );
+  assert(psysInitialSets.length === 2, 'P-system initial step should branch on sending x to membrane 1 or 2');
+  assert(hasCounts(psysInitialSets, { 'emit-a': 1, 'send-x-1': 1 }), 'P-system branch to membrane 1 missing');
+  assert(hasCounts(psysInitialSets, { 'emit-a': 1, 'send-x-2': 1 }), 'P-system branch to membrane 2 missing');
+
+  document.body.textContent = 'revision example smoke tests passed';
+</script>
