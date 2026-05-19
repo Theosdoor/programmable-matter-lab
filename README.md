@@ -35,7 +35,7 @@ Simulate **connectivity-preserving shape transformations** in robot swarms on a 
 
 ## Development
 
-No build step — all three tools are self-contained HTML files. Open `index.html` in a browser or serve the directory with any static server:
+No build step - all three tools are static HTML/CSS/JS files. Open `index.html` in a browser or serve the directory with any static server:
 
 ```sh
 # Python
@@ -50,16 +50,34 @@ npx serve .
 ```
 index.html              Hub / landing page
 theme.css               Shared dark/light theme (loaded by all tool pages)
+theme-init.js           Early tool-page theme initialiser
+formal-step.js          Shared maximal-rule-multiset enumeration
+membrane-editor.js      Shared membrane editor DOM helpers
+active-membrane-parser.js
+active-membrane-analysis.js
 active-membranes.html   Active Membranes Analyser
 p-systems.html          P-System Visual Simulator
 robot-swarms.html       Robot Swarm Transformer
+tests/                  Browser-based smoke tests
 .github/workflows/
   deploy.yml            GitHub Pages deployment
 ```
 
+### Smoke tests
+
+Serve the repo root and open the smoke-test pages in `tests/`:
+
+```sh
+python3 -m http.server 8000
+# http://localhost:8000/tests/formal-step-smoke.html
+# http://localhost:8000/tests/active-membrane-analysis-smoke.html
+```
+
+Tests report a `... passed` message on the page or throw in the browser console. There is currently no package-managed CLI test runner.
+
 ### Theming
 
-The hub reads and writes a `pm-theme` key in `localStorage` (`"dark"` or `"light"`). Each tool page picks this up on load via a small inline script in `<head>`. Toggling in the hub also updates the active iframe in real time via direct DOM access (same-origin).
+The hub reads and writes a `pm-theme` key in `localStorage` (`"dark"` or `"light"`). Each tool page picks this up on load via `theme-init.js` in `<head>`. Toggling in the hub also updates the active iframe in real time via direct DOM access (same-origin).
 
 ---
 
