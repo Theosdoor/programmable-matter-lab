@@ -11,16 +11,16 @@ Astro static site hosting three interactive browser-based simulators for bio-ins
 ## Local Development
 
 ```sh
-npm run dev
-npm run build
-npm run preview
+pnpm dev
+pnpm build
+pnpm preview
 ```
 
 Astro is the build system. Edit `src/pages/*.astro`, `src/styles/global.css`, and browser scripts in `public/`. Legacy root `.html`/`.js` files have been removed; `public/*.html` files are compatibility redirects for old URLs.
 
 ## Smoke Tests
 
-The repo has browser-based smoke tests under `public/tests/` so they are included in Astro preview/build output. Run `npm run dev` or `npm run preview`, then open each test page in a browser:
+The repo has browser-based smoke tests under `public/tests/` so they are included in Astro preview/build output. Run `pnpm dev` or `pnpm preview`, then open each test page in a browser:
 
 ```sh
 # http://localhost:4321/programmable-matter-lab/tests/formal-step-smoke.html
@@ -67,4 +67,4 @@ Each smoke test writes a `... passed` message to the page or throws an error in 
 
 ## Deployment
 
-Push to `main` triggers `.github/workflows/deploy.yml`, which installs dependencies, runs `npm run build`, and uploads `dist/` to GitHub Pages.
+Push to `main` triggers `.github/workflows/deploy.yml`, which installs dependencies, runs `pnpm build`, and uploads `dist/` to GitHub Pages.

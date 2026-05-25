@@ -38,10 +38,10 @@ Simulate **connectivity-preserving shape transformations** in robot swarms on a 
 Astro builds the static site to `dist/`:
 
 ```sh
-npm install
-npm run dev
-npm run build
-npm run preview
+pnpm install
+pnpm dev
+pnpm build
+pnpm preview
 ```
 
 ### File structure
@@ -68,7 +68,7 @@ public/tests/                      Browser-based smoke tests
 Run the dev server or preview server and open the smoke-test pages in `public/tests/`:
 
 ```sh
-npm run dev
+pnpm dev
 # http://localhost:4321/programmable-matter-lab/tests/formal-step-smoke.html
 # http://localhost:4321/programmable-matter-lab/tests/active-membrane-analysis-smoke.html
 # http://localhost:4321/programmable-matter-lab/tests/hub-routing-smoke.html
@@ -84,7 +84,7 @@ The hub reads and writes a `pm-theme` key in `localStorage` (`"dark"` or `"light
 
 ## Deployment
 
-Pushes to `main` automatically deploy to GitHub Pages via the included workflow. The workflow runs `npm ci`, `npm run build`, and uploads `dist/`.
+Pushes to `main` automatically deploy to GitHub Pages via the included workflow. The workflow runs `npm ci`, `pnpm build`, and uploads `dist/`.
 
 ---
 
