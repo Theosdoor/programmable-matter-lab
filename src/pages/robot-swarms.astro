@@ -151,23 +151,45 @@ import '../styles/global.css';
         <h1 class="text-2xl font-bold mb-6 text-center text-gray-700">Robot Swarm Transformation Simulator</h1>
 
         <div class="mb-6 p-4 bg-gray-50 rounded-lg shadow">
-            <div class="controls-container mb-4">
-                <div>
-                    <label for="gridSize" class="text-sm font-medium text-gray-700 mr-2">Grid Size (N x N, Odd):</label>
-                    <input type="number" id="gridSize" value="11" min="3" max="21" step="2" class="border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            <div class="controls-container mb-4 flex flex-wrap gap-2 items-center">
+                <div class="flex items-center gap-2">
+                    <label for="gridSize" class="text-sm font-medium text-text-sub">Grid Size:</label>
+                    <input type="number" id="gridSize" value="11" min="3" max="21" step="2" class="border rounded-md px-2 py-1.5 w-16 text-center shadow-sm">
                 </div>
-                <button id="generateGridBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-md shadow">Generate Grid</button>
-                <button id="defineTargetBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold rounded-md shadow">Define Target Shape</button>
-                <button id="clearTargetBtn" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-md shadow" disabled>Clear Target</button>
+                <button id="generateGridBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-md shadow px-3 py-1.5 flex items-center gap-1 cursor-pointer transition">
+                    <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" class="w-4 h-4"><path d="M224,24H32A16,16,0,0,0,16,40V216a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V40A16,16,0,0,0,224,24Zm-104,88H32V40h88Zm104,0H136V40h88ZM120,216H32V136h88Zm104,0H136V136h88Z"/></svg>
+                    <span class="btn-text">Generate</span>
+                </button>
+                <button id="defineTargetBtn" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold rounded-md shadow px-3 py-1.5 flex items-center gap-1 cursor-pointer transition">
+                    <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" class="w-4 h-4"><path d="M228,120h-12.82a88.07,88.07,0,0,0-87.18-87.18V20a8,8,0,0,0-16,0V32.82A88.07,88.07,0,0,0,28,120H15.18a8,8,0,0,0,0,16H28a88.07,88.07,0,0,0,87.18,87.18V236a8,8,0,0,0,16,0V223.18A88.07,88.07,0,0,0,215.18,136H228a8,8,0,0,0,0-16ZM128,208a80,80,0,1,1,80-80A80.09,80.09,0,0,1,128,208Zm0-128a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Z"/></svg>
+                    <span class="btn-text">Define Target</span>
+                </button>
+                <button id="clearTargetBtn" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-md shadow px-3 py-1.5 flex items-center gap-1 cursor-pointer transition" disabled>
+                    <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" class="w-4 h-4"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v72a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v72a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"/></svg>
+                    <span class="btn-text">Clear Target</span>
+                </button>
             </div>
-            <div class="controls-container mb-4">
-                 <button id="startTransformBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-md shadow" disabled>Start Transformation</button>
-                 <button id="undoBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-md shadow" disabled>Undo Last Rotation</button>
-                 <button id="resetTransformBtn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-md shadow" disabled>Reset Transformation</button>
-                 <button id="restartBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold rounded-md shadow">Restart</button>
-            </div>
-             <div class="controls-container mb-4">
-                <button id="copyLinkBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-md shadow">Get Share Link</button>
+            <div class="controls-container mb-4 flex flex-wrap gap-2 items-center">
+                <button id="startTransformBtn" class="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-md shadow px-3 py-1.5 flex items-center gap-1 cursor-pointer transition" disabled>
+                    <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" class="w-4 h-4"><path d="M232.4,114.62,88.39,27.68A16,16,0,0,0,64,41.06V214.94a16,16,0,0,0,24.39,13.38l144-86.94a16,16,0,0,0,0-26.76ZM80,214.94V41.06L224,128Z"/></svg>
+                    <span class="btn-text">Start</span>
+                </button>
+                <button id="undoBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-md shadow px-3 py-1.5 flex items-center gap-1 cursor-pointer transition" disabled>
+                    <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" class="w-4 h-4"><path d="M224,120H91.31l34.35-34.34a8,8,0,0,0-11.32-11.32l-48,48a8,8,0,0,0,0,11.32l48,48a8,8,0,0,0,11.32-11.32L91.31,136H224a8,8,0,0,0,0-16Z"/></svg>
+                    <span class="btn-text">Undo</span>
+                </button>
+                <button id="resetTransformBtn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-md shadow px-3 py-1.5 flex items-center gap-1 cursor-pointer transition" disabled>
+                    <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" class="w-4 h-4"><path d="M240,128a112.24,112.24,0,0,1-32.84,79.12l-18.23-18.23a96,96,0,1,0,0-121.78l18.23-18.23A112.24,112.24,0,0,1,240,128ZM33.65,32H80V78.35a8,8,0,0,0,13.66,5.66l48-48a8,8,0,0,0,0-11.32l-48-48A8,8,0,0,0,80,22.35V32H33.65a8,8,0,0,0,0,16ZM222.35,224H176v-46.35a8,8,0,0,0-13.66-5.66l-48,48a8,8,0,0,0,0,11.32l48,48A8,8,0,0,0,176,273.65V224h46.35a8,8,0,0,0,0-16Z"/></svg>
+                    <span class="btn-text">Reset</span>
+                </button>
+                <button id="restartBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold rounded-md shadow px-3 py-1.5 flex items-center gap-1 cursor-pointer transition">
+                    <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" class="w-4 h-4"><path d="M128,24A104,104,0,0,0,24,128a103.11,103.11,0,0,0,26.47,68.73,8,8,0,1,0,12-10.57A87.21,87.21,0,0,1,40,128a88,88,0,1,1,155.6,57.19,8,8,0,1,0,12,10.54A103.73,103.73,0,0,0,232,128,104.12,104.12,0,0,0,128,24ZM128,120a8,8,0,0,0,8-8V40a8,8,0,0,0-16,0v72A8,8,0,0,0,128,120Z"/></svg>
+                    <span class="btn-text">Restart</span>
+                </button>
+                <button id="copyLinkBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-md shadow px-3 py-1.5 flex items-center gap-1 cursor-pointer transition">
+                    <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" class="w-4 h-4"><path d="M136,80H88a48,48,0,0,0,0,96h48a8,8,0,0,0,0-16H88a32,32,0,0,1,0-64h48a8,8,0,0,0,0-16Zm72,48a48,48,0,0,1-48,48H120a8,8,0,0,1,0-16h40a32,32,0,0,0,0-64H120a8,8,0,0,1,0-16h40A48,48,0,0,1,208,128ZM80,136h96a8,8,0,0,0,0-16H80a8,8,0,0,0,0,16Z"/></svg>
+                    <span class="btn-text">Share</span>
+                </button>
             </div>
             <div id="messageBox" class="info-box mt-2 p-3 bg-blue-100 border border-blue-300 text-blue-700 rounded-md text-sm">
                 Set grid size (odd number) and click "Generate Grid". Then, click cells to place nodes for the initial shape.

@@ -224,12 +224,18 @@
             const hasInitialNodes = gridState.flat().some(cell => cell !== null);
             const hasTargetNodes = targetGridState && targetGridState.flat().some(cell => cell !== null);
 
-            startTransformBtn.textContent = SwarmMode.isTransforming() ? 'Return to Setup' : 'Start Transformation';
+            const startTransformText = startTransformBtn.querySelector('.btn-text');
+            if (startTransformText) {
+                startTransformText.textContent = SwarmMode.isTransforming() ? 'Setup' : 'Start';
+            }
             startTransformBtn.disabled = SwarmMode.is('TARGET_SETUP') || (!hasInitialNodes && !SwarmMode.isTransforming());
             
             undoBtn.disabled = moveHistory.length === 0;
             resetTransformBtn.disabled = moveHistory.length === 0; // Enabled only if there's history
-            defineTargetBtn.textContent = SwarmMode.is('TARGET_SETUP') ? 'Finish Defining Target' : 'Define Target Shape';
+            const defineTargetText = defineTargetBtn.querySelector('.btn-text');
+            if (defineTargetText) {
+                defineTargetText.textContent = SwarmMode.is('TARGET_SETUP') ? 'Finish' : 'Define Target';
+            }
             clearTargetBtn.disabled = !hasTargetNodes;
             gridSizeInput.disabled = !SwarmMode.is('SETUP_INITIAL');
             generateGridBtn.disabled = !SwarmMode.is('SETUP_INITIAL');
