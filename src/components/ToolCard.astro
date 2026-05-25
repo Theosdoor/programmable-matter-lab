@@ -1,0 +1,13 @@
+---
+import ToolIcon from './ToolIcon.astro';
+const { tool } = Astro.props;
+---
+<div class="card" data-tool={tool.id} tabindex="0" role="button"
+     onclick={`openTool('${tool.path}','${tool.id}')`}
+     onkeydown={`if(event.key==='Enter')openTool('${tool.path}','${tool.id}')`}>
+  <div class="card-tag">{tool.tag}</div>
+  <ToolIcon iconName={tool.iconName} />
+  <h2 class="card-title">{tool.title}</h2>
+  <p class="card-desc">{tool.description}</p>
+  <div class="card-cta">{tool.cta} <span aria-hidden="true">&#8594;</span></div>
+</div>
