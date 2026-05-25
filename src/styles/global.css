@@ -238,3 +238,75 @@ html[data-theme="light"] .rule-tag {
   border-bottom: 1px dashed var(--border);
 }
 .log-entry:last-child { border-bottom: none; }
+
+/* ----------------------------------------------------------------
+   GRID CELLS & ROBOT SWARMS (robot-swarms.astro)
+---------------------------------------------------------------- */
+.grid-cell {
+  background-color: var(--surface);
+  border-color:     var(--border);
+}
+
+.grid-cell-center {
+  background-color: var(--surface-2);
+}
+
+.label-cell { color: var(--text-sub); }
+
+/* Highlight states stay vivid for usability */
+.highlight-rotating          { background-color: rgba(56,212,255,0.3); }
+.highlight-potential-pivot   { background-color: rgba(255,209,102,0.3); }
+.highlight-pivot             { background-color: rgba(56,212,255,0.5); }
+.highlight-destination       { background-color: rgba(0,232,143,0.5); border: 2px solid var(--accent-a); }
+.highlight-double-destination { background-color: rgba(179,106,255,0.4); border: 2px solid #b36aff; }
+
+html[data-theme="light"] .highlight-rotating          { background-color: #90cdf4; }
+html[data-theme="light"] .highlight-potential-pivot   { background-color: #faf089; }
+html[data-theme="light"] .highlight-pivot             { background-color: #63b3ed; }
+html[data-theme="light"] .highlight-destination       { background-color: #4299e1; border-color: #2c5282; }
+html[data-theme="light"] .highlight-double-destination { background-color: #d6bcfa; border-color: #805ad5; }
+
+/* Nodes are functional colors */
+.node-red   { background-color: #f56565; }
+.node-black { background-color: #4A5568; }
+
+html[data-theme="dark"] .node-black { background-color: var(--text-sub); }
+
+.mini-grid-cell        { background-color: var(--surface); border-color: var(--border); }
+.mini-grid-cell-center { background-color: var(--surface-2); }
+.mini-node-red         { background-color: #f56565; }
+.mini-node-black       { background-color: #4A5568; }
+
+/* ----------------------------------------------------------------
+   LOG AREAS
+---------------------------------------------------------------- */
+#log,
+#log-output {
+  background-color: var(--surface);
+  border-color:     var(--border);
+  color:            var(--text-sub);
+}
+
+/* ----------------------------------------------------------------
+   MISC UTILITY OVERRIDES
+---------------------------------------------------------------- */
+.object-tag {
+  background-color: var(--surface-2);
+  color:            var(--text);
+  border-color:     var(--border);
+}
+
+/* Simulation status / display panels */
+#simulation-status,
+#membranes-display,
+#environment-display,
+#results-container {
+  background-color: var(--surface-2);
+  border-color:     var(--border);
+  color:            var(--text-sub);
+}
+
+/* Error messages stay red */
+.error-message { color: #ff6b6b; }
+html[data-theme="light"] .error-message { color: var(--accent-t); }
+
